@@ -1,22 +1,5 @@
 /*
-  License
-  Copyright (c) 2013-2017 by Alexander Grau
-
-  Private-use only! (you need to ask for a commercial-use)
-
-  The code is open: you can modify it under the terms of the
-  GNU General Public License as published by the Free Software Foundation,
-  either version 3 of the License, or (at your option) any later version.
-
-  The code is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-  Private-use only! (you need to ask for a commercial-use)
+ use mpu6050 dmp TO FIND yaw
 
 */
 
@@ -24,7 +7,7 @@
 #include "helper_3dmath.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "mower.h"
-#include "i2c.h"
+//#include "i2c.h"
 #include "robot.h"
 //#include "buzzer.h"
 #include "flashmem.h"
@@ -70,28 +53,18 @@ float yprtest[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and
 
 #define ADDR 600
 #define MAGIC 6
-#define HMC5883L (0x1E)          // HMC5883L compass sensor (GY-80 PCB)
+//#define HMC5883L (0x1E)          // HMC5883L compass sensor (GY-80 PCB)
 
 void IMUClass::begin() {
   if (!robot.imuUse) return;
   //initialisation of CompassHMC5833L
-  Console.println(F("--------------------------------- IMU INITIALISATION -------------------"));
-  uint8_t data = 0;
-  //while (true) {
-  I2CreadFrom(HMC5883L, 10, 1, &data, 1);
-  Console.print(F("COMPASS HMC5883L ID NEED TO BE 72 IF ALL IS OK ------>  ID="));
-  Console.println(data);
-  if (data != 72) Console.println(F("COMPASS HMC5883L FAIL"));
-  delay(1000);
-  //}
-  comOfs.x = comOfs.y = comOfs.z = 0;
-  comScale.x = comScale.y = comScale.z = 2;
+  Console.println(F("--------------------------------- GYRO INITIALISATION -------------------"));
+  
+  
   loadCalib();
   printCalib();
-  useComCalibration = true;
-  I2CwriteTo(HMC5883L, 0x00, 0x70);  // config A:  8 samples averaged, 75Hz frequency, no artificial bias.
-  I2CwriteTo(HMC5883L, 0x01, 0x20);  // config B: gain
-  I2CwriteTo(HMC5883L, 0x02, 00);  // mode: continuous
+  //useComCalibration = true;
+  
   delay(2000); //    wait 2 second before doing the first reading
 
   //initialisation of MPU6050
@@ -106,14 +79,7 @@ void IMUClass::begin() {
   mpu.setXGyroOffset(gx_offset);//-1
   mpu.setYGyroOffset(gy_offset);//-3
   mpu.setZGyroOffset(gz_offset);//-2
-  /*
-    mpu.setXAccelOffset(-1929); //-1929
-    mpu.setYAccelOffset(471); //471
-    mpu.setZAccelOffset(1293); // 1293
-    mpu.setXGyroOffset(-1);//-1
-    mpu.setYGyroOffset(-3);//-3
-    mpu.setZGyroOffset(-2);//-2
-  */
+ 
   CompassGyroOffset = 0;
 
   // make sure it worked (returns 0 if so)
@@ -133,14 +99,11 @@ void IMUClass::begin() {
   run();
   Console.print(F("AccelGyro Yaw: "));
   Console.print(ypr.yaw);
-  Console.print(F("  Compass Yaw: "));
-  Console.print(comYaw);
+  //Console.print(F("  Compass Yaw: "));
+  //Console.print(comYaw);
 
-  CompassGyroOffset = distancePI(ypr.yaw, comYaw);
-  Console.print(F("  Diff between compass and accelGyro in Radian and Deg"));
-  Console.print(CompassGyroOffset);
-  Console.print(" / ");
-  Console.println(CompassGyroOffset * 180 / PI);
+  CompassGyroOffset = 0;
+
 
   Console.println(F("--------------------------------- IMU READY ------------------------------"));
 }
@@ -288,10 +251,7 @@ void IMUClass::meansensors() {
 void IMUClass::run() {
   if (!robot.imuUse)  return;
   if (devStatus != 0) return;
-  if (state == IMU_CAL_COM) { //don't read the MPU6050 if compass calibration
-    calibComUpdate();
-    return;
-  }
+ 
   //-------------------read the mpu6050 DMP into yprtest array--------------------------------
   mpu.resetFIFO();
   while (fifoCount < packetSize) {  //leave time to the DMP to fill the FIFO
@@ -343,68 +303,18 @@ void IMUClass::run() {
 
   gyroAccYaw = yprtest[0];  // the Gyro Yaw very accurate but drift
 
-  // ------------------put the CompassHMC5883 value into comYaw-------------------------------------
-  readHMC5883L();
-  //tilt compensed yaw ????????????
-  comTilt.x =  com.x  * cos(ypr.pitch) + com.z * sin(ypr.pitch);
-  comTilt.y =  com.x  * sin(ypr.roll)         * sin(ypr.pitch) + com.y * cos(ypr.roll) - com.z * sin(ypr.roll) * cos(ypr.pitch);
-  comTilt.z = -com.x  * cos(ypr.roll)         * sin(ypr.pitch) + com.y * sin(ypr.roll) + com.z * cos(ypr.roll) * cos(ypr.pitch);
-  comYaw = scalePI( atan2(comTilt.y, comTilt.x)  ); // the compass yaw not accurate but reliable
-  //last traitement to verify drift
-  /*
-    Console.print ("IMU.YAW ");
-    Console.print (gyroAccYaw);
-    Console.print (" Compass.YAW ");
-    Console.print (comYaw);
-    Console.print (" firstStartCompassYaw ");
-    Console.println (firstStartCompassYaw);
-    //Console.print (" stopYawCompass ");
-
-  */
+  
 
   // / CompassGyroOffset=distancePI( scalePI(ypr.yaw-CompassGyroOffset), comYaw);
   ypr.yaw = scalePI(gyroAccYaw + CompassGyroOffset) ;
 
 
 
-  /*
-    if (millis() > timeToAdjustGyroToCompass) {
-      Console.println(ypr.yaw);
-      //firstStartCompassYaw = comYaw - gyroAccYaw;
-      timeToAdjustGyroToCompass = millis() + 200;
-    }
-  */
+ 
 
 }
 
-void IMUClass::readHMC5883L() {
-  uint8_t buf[6];
-  if (I2CreadFrom(HMC5883L, 0x03, 6, (uint8_t*)buf) != 6) {
-    //errorCounter++;
-    return;
-  }
-  // scale +1.3Gauss..-1.3Gauss  (*0.00092)
-  float x = (int16_t) (((uint16_t)buf[0]) << 8 | buf[1]);
-  float y = (int16_t) (((uint16_t)buf[4]) << 8 | buf[5]);
-  float z = (int16_t) (((uint16_t)buf[2]) << 8 | buf[3]);
-  if (useComCalibration) {
 
-    x -= comOfs.x;
-    y -= comOfs.y;
-    z -= comOfs.z;
-    x /= comScale.x * 0.5;
-    y /= comScale.y * 0.5;
-    z /= comScale.z * 0.5;
-    com.x = x;
-    com.y = y;
-    com.z = z;
-  } else {
-    com.x = x;
-    com.y = y;
-    com.z = z;
-  }
-
-}
 
 
 void IMUClass::loadSaveCalib(boolean readflag) {
@@ -421,8 +331,8 @@ void IMUClass::loadSaveCalib(boolean readflag) {
   eereadwrite(readflag, addr, gy_offset);
   eereadwrite(readflag, addr, gz_offset);
   //compass offset
-  eereadwrite(readflag, addr, comOfs);
-  eereadwrite(readflag, addr, comScale);
+  //eereadwrite(readflag, addr, comOfs);
+  //eereadwrite(readflag, addr, comScale);
   Console.print(F("Calibration address Start = "));
   Console.println(ADDR);
   Console.print(F("Calibration address Stop = "));
@@ -451,12 +361,7 @@ void IMUClass::printCalib() {
   Console.print(gy_offset);
   Console.print(" gz: ");
   Console.println(gz_offset);
-  Console.print("COMPASS OFFSET X.Y.Z AND SCALE X.Y.Z   --> ");
-  Console.print(F("comOfs="));
-  printPt(comOfs);
-  Console.print(F("comScale="));
-  printPt(comScale);
-  Console.println(F("."));
+  
 }
 
 void IMUClass::loadCalib() {
@@ -487,13 +392,7 @@ void IMUClass::saveCalib() {
 }
 
 
-void IMUClass::deleteCompassCalib() {
-  int addr = ADDR;
-  eewrite(addr, (short)0); // magic
-  comOfs.x = comOfs.y = comOfs.z = 0;
-  comScale.x = comScale.y = comScale.z = 2;
-  Console.println("Compass calibration deleted");
-}
+
 void IMUClass::deleteAccelGyroCalib() {
   int addr = ADDR;
   eewrite(addr, (short)0); // magic
@@ -564,95 +463,4 @@ void IMUClass::calibGyro() {
   Console.println(gz_offset);
   watchdogReset();
   saveCalib();
-}
-
-
-void IMUClass::calibComStartStop() {
-  while ((!robot.RaspberryPIUse) && (Console.available())) Console.read(); //use to stop the calib
-  if (state == IMU_CAL_COM) {
-    // stop
-    Console.println(F("com calib completed"));
-    calibrationAvail = true;
-    float xrange = comMax.x - comMin.x;
-    float yrange = comMax.y - comMin.y;
-    float zrange = comMax.z - comMin.z;
-    comOfs.x = xrange / 2 + comMin.x;
-    comOfs.y = yrange / 2 + comMin.y;
-    comOfs.z = zrange / 2 + comMin.z;
-    comScale.x = xrange;
-    comScale.y = yrange;
-    comScale.z = zrange;
-    //bber18
-    if ((comScale.x == 0) || (comScale.y == 0) || (comScale.z == 0)) { //jussip bug found div by 0 later
-      Console.println(F("*********************ERROR WHEN CALIBRATE : VALUE ARE TOTALY WRONG CHECK IF COMPASS IS NOT PERTURBATE **************"));
-      comOfs.x = comOfs.y = comOfs.z = 0;
-      comScale.x = comScale.y = comScale.z = 2;
-    }
-    saveCalib();
-    printCalib();
-    useComCalibration = true;
-    state = IMU_RUN;
-
-
-  } else {
-    // start
-    Console.println(F("com calib..."));
-    Console.println(F("rotate sensor 360 degree around all three axis until NO new data are coming"));
-    watchdogReset();
-    foundNewMinMax = false;
-    useComCalibration = false;
-    state = IMU_CAL_COM;
-    comMin.x = comMin.y = comMin.z = 9999;
-    comMax.x = comMax.y = comMax.z = -9999;
-  }
-}
-void IMUClass::calibComUpdate() {
-  comLast = com;
-  delay(20);
-  readHMC5883L();
-  watchdogReset();
-  boolean newfound = false;
-  if ( (abs(com.x - comLast.x) < 10) &&  (abs(com.y - comLast.y) < 10) &&  (abs(com.z - comLast.z) < 10) ) {
-    if (com.x < comMin.x) {
-      comMin.x = com.x;
-      newfound = true;
-    }
-    if (com.y < comMin.y) {
-      comMin.y = com.y;
-      newfound = true;
-    }
-    if (com.z < comMin.z) {
-      comMin.z = com.z;
-      newfound = true;
-    }
-    if (com.x > comMax.x) {
-      comMax.x = com.x;
-      newfound = true;
-    }
-    if (com.y > comMax.y) {
-      comMax.y = com.y;
-      newfound = true;
-    }
-    if (com.z > comMax.z) {
-      comMax.z = com.z;
-      newfound = true;
-    }
-    if (newfound) {
-      foundNewMinMax = true;
-      watchdogReset();
-      Console.print("x:");
-      Console.print(comMin.x);
-      Console.print(",");
-      Console.print(comMax.x);
-      Console.print("\t  y:");
-      Console.print(comMin.y);
-      Console.print(",");
-      Console.print(comMax.y);
-      Console.print("\t  z:");
-      Console.print(comMin.z);
-      Console.print(",");
-      Console.print(comMax.z);
-      Console.println("\t");
-    }
-  }
 }

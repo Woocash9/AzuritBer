@@ -3695,32 +3695,22 @@ void Robot::setNextState(byte stateNew, byte dir) {
       UseBrakeLeft = 1;
       UseAccelRight = 1;
       UseBrakeRight = 1;
-      Console.print(" imu.comYaw ");
-      Console.print(abs(100 * imu.comYaw));
+
       Console.print(" imu.ypr.yaw ");
       Console.print(abs(100 * imu.ypr.yaw));
-      Console.print(" distancePI(imu.comYaw, imu.ypr.yaw) ");
-      Console.println(distancePI(imu.comYaw, imu.ypr.yaw));
 
 
 
-      if (distancePI(imu.comYaw, yawCiblePos * PI / 180) > 0) { //rotate in the nearest direction
-        actualRollDirToCalibrate = RIGHT;
-        Console.println(" >>> >>> >>> >>> >>> >>> 0");
-        motorLeftSpeedRpmSet = motorSpeedMaxRpm * compassRollSpeedCoeff / 100 ;
-        motorRightSpeedRpmSet = -motorSpeedMaxRpm * compassRollSpeedCoeff / 100;
-        stateEndOdometryRight = odometryRight - (int)(odometryTicksPerCm *  4 * PI * odometryWheelBaseCm );
-        stateEndOdometryLeft = odometryLeft + (int)(odometryTicksPerCm *  4 * PI * odometryWheelBaseCm );
-      }
-      else
-      {
-        actualRollDirToCalibrate = LEFT;
-        Console.println(" <<< <<< <<< <<< <<< << 0");
-        motorLeftSpeedRpmSet = -motorSpeedMaxRpm * compassRollSpeedCoeff / 100 ;
-        motorRightSpeedRpmSet = motorSpeedMaxRpm * compassRollSpeedCoeff / 100;
-        stateEndOdometryRight = odometryRight + (int)(odometryTicksPerCm *  4 * PI * odometryWheelBaseCm );
-        stateEndOdometryLeft = odometryLeft - (int)(odometryTicksPerCm *  4 * PI * odometryWheelBaseCm );
-      }
+
+
+      actualRollDirToCalibrate = RIGHT;
+      Console.println(" >>> >>> >>> >>> >>> >>> 0");
+      motorLeftSpeedRpmSet = motorSpeedMaxRpm * compassRollSpeedCoeff / 100 ;
+      motorRightSpeedRpmSet = -motorSpeedMaxRpm * compassRollSpeedCoeff / 100;
+      stateEndOdometryRight = odometryRight - (int)(odometryTicksPerCm *  4 * PI * odometryWheelBaseCm );
+      stateEndOdometryLeft = odometryLeft + (int)(odometryTicksPerCm *  4 * PI * odometryWheelBaseCm );
+
+
 
 
       OdoRampCompute();
@@ -5241,21 +5231,11 @@ void Robot::loop()  {
 
 
     case STATE_ROLL_TO_FIND_YAW:
+
+
       motorControlOdo();
       imu.run();
-      if ((yawToFind - 2 < (imu.comYaw / PI * 180)) && (yawToFind + 2 > (imu.comYaw / PI * 180)))  { //at +-2 degres
-
-        findedYaw = (imu.comYaw / PI * 180);
-        setNextState(STATE_STOP_CALIBRATE, rollDir);
-      }
-
-      if (millis() > (stateStartTime + MaxOdoStateDuration + 6000)) {
-        if (developerActive) {
-          Console.println ("Warning can t roll to find yaw in time The Compass is certainly HS ");
-        }
-        setNextState(STATE_STOP_CALIBRATE, rollDir);
-      }
-
+      setNextState(STATE_STOP_CALIBRATE, rollDir);
       break;
 
     //not use actually
@@ -5463,19 +5443,19 @@ void Robot::loop()  {
           if (laneUseNr == 1) yawToFind = yawSet1 ;
           if (laneUseNr == 2) yawToFind = yawSet2 ;
           if (laneUseNr == 3) yawToFind = yawSet3 ;
-          setNextState(STATE_ROLL_TO_FIND_YAW, rollDir);
+          setNextState(STATE_STOP_CALIBRATE, rollDir);
 
 
 
         }
       if (millis() > (stateStartTime + MaxOdoStateDuration)) {
         if (developerActive) {
-          Console.println ("Warning can t peri out stop in time ");
+          Console.println ("Warning can t stop to find yaw in time ");
         }
         if (laneUseNr == 1) yawToFind = yawSet1 ;
         if (laneUseNr == 2) yawToFind = yawSet2 ;
         if (laneUseNr == 3) yawToFind = yawSet3 ;
-        setNextState(STATE_ROLL_TO_FIND_YAW, rollDir);//if the motor can't rech the odocible in slope
+        setNextState(STATE_STOP_CALIBRATE, rollDir);//if the motor can't rech the odocible in slope
 
 
 
@@ -5547,14 +5527,14 @@ void Robot::loop()  {
     case STATE_AUTO_CALIBRATE:
       setBeeper(2000, 150, 150, 160, 50);
       if (millis() > nextTimeAddYawMedian) {  // compute a median of accelGyro and Compass  yaw
-        compassYawMedian.add(imu.comYaw);
+        //compassYawMedian.add(imu.comYaw);
         accelGyroYawMedian.add(imu.ypr.yaw);
         nextTimeAddYawMedian = millis() + 70;  // the value are read each 70ms
       }
       if (accelGyroYawMedian.getCount() > 56) { //we have the value of 4 secondes try to verify if the drift is less than x deg/sec
         Console.println("4 sec of read value, verify if the drift is stop");
         if  (abs(accelGyroYawMedian.getHighest() - accelGyroYawMedian.getLowest()) < 4 * maxDriftPerSecond * PI / 180) { //drift is OK restart mowing
-          imu.CompassGyroOffset = distancePI( scalePI(accelGyroYawMedian.getMedian() -  imu.CompassGyroOffset), compassYawMedian.getMedian()); //change the Gyro offset according to Compass Yaw
+          imu.CompassGyroOffset = 0;//distancePI( scalePI(accelGyroYawMedian.getMedian() -  imu.CompassGyroOffset), compassYawMedian.getMedian()); //change the Gyro offset according to Compass Yaw
           Console.println("OK next state out rev");
           setBeeper(0, 0, 0, 0, 0); //stop sound immediatly
           if (stopMotorDuringCalib) motorMowEnable = true;//restart the mow motor
@@ -5577,7 +5557,9 @@ void Robot::loop()  {
       if (millis() > endTimeCalibration) { //we have wait enought and the result is not OK start to mow in random mode or make a total calibration
         mowPatternCurr == MOW_RANDOM;
         if (stopMotorDuringCalib) motorMowEnable = true;//stop the mow motor
-        Console.println("WAIT to stop Drift of GYRO : is not OK mowing Drift too important");
+        Console.println("Drift too important it's not possible to have a correct bylane mowing");
+        Console.println("***************** CHECK THE GYRO CALIBRATION ************************");
+
         nextTimeToDmpAutoCalibration = millis() + delayBetweenTwoDmpAutocalib * 1000;
         setBeeper(0, 0, 0, 0, 0);
         if (perimeterInside) {

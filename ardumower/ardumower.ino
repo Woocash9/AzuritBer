@@ -1,7 +1,7 @@
 /*      
  *      DUE and ODOMETRY MANDATORY VERSION 
  *      PCB1.3 
- *      FOR BY LANE USE, IMU GY-88 MANDATORY 
+ *      GY-88 or GY-521 MANDATORY with AD0 shunt
  *      
  *      Connect DUE programming port to PC for programming and PC console
  *      Connect DUE Native USB port to Raspberry Pi 

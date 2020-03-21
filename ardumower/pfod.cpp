@@ -801,10 +801,8 @@ void RemoteControl::sendImuMenu(boolean update) {
   if (update) serialPort->print("{:"); else serialPort->print(F("{.IMU`1000"));
   serialPort->println(F("|g00~ Use :(Need Restart) "));
   sendYesNo(robot->imuUse);
-  serialPort->println(F("|g01~Gyro Yaw/Compass Yaw"));
+  serialPort->println(F("|g01~Gyro Yaw"));
   serialPort->print(robot->imu.ypr.yaw / PI * 180);
-  serialPort->print(F(" / "));
-  serialPort->print(robot->imu.comYaw / PI * 180);
   serialPort->print(F(" deg"));
   serialPort->print(F("|g09~DriveHeading "));
   serialPort->print(robot->imuDriveHeading);
@@ -821,13 +819,13 @@ void RemoteControl::sendImuMenu(boolean update) {
   sendSlider("g06", F("Calibration Max Duration in Sec"), robot->maxDurationDmpAutocalib, "Sec", 1, 100, 10);
   sendSlider("g07", F("Delay between 2 Calib in Sec"), robot->delayBetweenTwoDmpAutocalib, "Sec", 1, 600, 60);
   sendSlider("g08", F("Drift Maxi in Deg Per Second "), robot->maxDriftPerSecond, "Deg", 0.01, 0.3, 0);
-  sendSlider("g10", F("Speed to find ComYaw % of motorSpeedMaxRpm "), robot->compassRollSpeedCoeff, "Deg", 1, 80, 30);
+  //sendSlider("g10", F("Speed to find ComYaw % of motorSpeedMaxRpm "), robot->compassRollSpeedCoeff, "Deg", 1, 80, 30);
 
 
   serialPort->print(F("|g18~Accel Gyro Initial Calibration more than 30sec duration"));
-  serialPort->print(F("|g19~Compass calibration click to start and again to stop"));
+  //serialPort->print(F("|g19~Compass calibration click to start and again to stop"));
   //bber18
-  serialPort->print(F("|g20~Delete Compass calibration"));
+  //serialPort->print(F("|g20~Delete Compass calibration"));
   serialPort->println("}");
 }
 
@@ -842,15 +840,15 @@ void RemoteControl::processImuMenu(String pfodCmd) {
   else if (pfodCmd.startsWith("g06")) processSlider(pfodCmd, robot->maxDurationDmpAutocalib, 1);
   else if (pfodCmd.startsWith("g07")) processSlider(pfodCmd, robot->delayBetweenTwoDmpAutocalib, 1);
   else if (pfodCmd.startsWith("g08")) processSlider(pfodCmd, robot->maxDriftPerSecond, 0.01);
-  else if (pfodCmd.startsWith("g10")) processSlider(pfodCmd, robot->compassRollSpeedCoeff, 1);
+  //else if (pfodCmd.startsWith("g10")) processSlider(pfodCmd, robot->compassRollSpeedCoeff, 1);
   else if (pfodCmd == "g18") {
     robot->imu.deleteAccelGyroCalib();
     robot->imu.calibGyro();
   }
-  else if (pfodCmd == "g19") robot->imu.calibComStartStop();
+  //else if (pfodCmd == "g19") robot->imu.calibComStartStop();
 
   //bber18
-  else if (pfodCmd == "g20") robot->imu.deleteCompassCalib();
+  //else if (pfodCmd == "g20") robot->imu.deleteCompassCalib();
 
   sendImuMenu(true);
 }
