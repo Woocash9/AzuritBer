@@ -3745,6 +3745,7 @@ void Robot::setNextState(byte stateNew, byte dir) {
       //motorMowModulate = false;
       break;
     case STATE_STATION: //stop immediatly
+    
       areaInMowing = 1;
       //ignoreRfidTag = false;
       motorMowEnable = false;
@@ -4649,7 +4650,7 @@ void Robot::loop()  {
   }
   beeper();
 
-  if ((stateCurr != STATE_STATION_CHARGING) || (stateCurr != STATE_STATION) || (stateCurr != STATE_PERI_TRACK)) {
+  if ((stateCurr != STATE_STATION_CHARGING) || (stateCurr != STATE_PERI_TRACK)) {
     if ((imuUse) && (millis() >= nextTimeImuLoop)) {
       imu.run();
       nextTimeImuLoop = millis() + 50;

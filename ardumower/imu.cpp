@@ -38,26 +38,16 @@ int16_t ax, ay, az, gx, gy, gz;
 int mean_ax, mean_ay, mean_az, mean_gx, mean_gy, mean_gz, state = 0;
 int ax_offset, ay_offset, az_offset, gx_offset, gy_offset, gz_offset;
 
-// orientation/motion vars
-//Quaternion q;           // [w, x, y, z]         quaternion container
-//VectorInt16 aa;         // [x, y, z]            accel sensor measurements
-//VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
-//VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
-//VectorFloat gravity;    // [x, y, z]            gravity vector
-//float euler[3];         // [psi, theta, phi]    Euler angle container
 float yprtest[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
-// packet structure for InvenSense teapot demo
-//uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n' };
 
 
 #define ADDR 600
 #define MAGIC 6
-//#define HMC5883L (0x1E)          // HMC5883L compass sensor (GY-80 PCB)
 
 void IMUClass::begin() {
   if (!robot.imuUse) return;
-  //initialisation of CompassHMC5833L
+  
   Console.println(F("--------------------------------- GYRO INITIALISATION -------------------"));
   
   
@@ -303,14 +293,13 @@ void IMUClass::run() {
 
   gyroAccYaw = yprtest[0];  // the Gyro Yaw very accurate but drift
 
-  
-
-  // / CompassGyroOffset=distancePI( scalePI(ypr.yaw-CompassGyroOffset), comYaw);
+  //reset the gyro to 0 when the mower is in station to always start the first mowing lane heading correctly
+  if (robot.stateCurr == STATE_STATION){
+    CompassGyroOffset=distancePI(scalePI(gyroAccYaw), 0);
+  }
+ 
   ypr.yaw = scalePI(gyroAccYaw + CompassGyroOffset) ;
 
-
-
- 
 
 }
 
