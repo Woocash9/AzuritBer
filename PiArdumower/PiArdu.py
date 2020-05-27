@@ -105,6 +105,14 @@ def find_rfid_tag():
     
 
     search_code=mymower.lastRfidFind
+    #first check if exist and auto add new one
+    tag_exist=False
+    for i in range(0,len(rfid_list)):
+        if (str(rfid_list[i][0])== str(search_code)):
+            tag_exist=True
+    if not(tag_exist):
+        new_rfid_tag(search_code)
+            
     search_status=myRobot.statusNames[mymower.status]
     
     mymower.newtagToDo="Null"
@@ -248,6 +256,7 @@ tk_perimeterMagRight=tk.IntVar()
 tk_gyroYaw=tk.DoubleVar()
 tk_compassYaw=tk.DoubleVar()
 tk_consoleHide=tk.IntVar()
+tk_RfidSlidderIndex=tk.IntVar()
 
 ManualKeyboardUse=tk.IntVar()
 MainperimeterUse= tk.IntVar()
@@ -392,17 +401,7 @@ def checkSerial():  #the main loop is that
                     consoleInsertText("INCOMMING MESSAGE ERROR FROM DUE" + '\n')
                     consoleInsertText(str(mymower.dueSerialReceived) + '\n')
                 """
-                  
-                
-
-                
-
-           
-
-
-                
-    
-        
+       
     if ((mower.speedIsReduce) & (time.time() > mower.timeToResetSpeed)):
         mower.speedIsReduce=False
         send_var_message('w','MaxSpeedperiPwm',''+str(myRobot.MaxSpeedperiPwm)+'','0','0','0','0','0','0','0')
@@ -411,14 +410,7 @@ def checkSerial():  #the main loop is that
         txtSend.delete('5000.0',tk.END) #keep only  lines
     txtConsoleRecu.delete('2500.0',tk.END) #keep only  lines
    
-
-
-
-
-
-    
-    #fen1.after(10,checkSerial) #to be sure empty the buffer read again immediatly   
-    fen1.after(20,checkSerial)  # here is the main loop each 50ms
+    fen1.after(20,checkSerial)  # here is the main loop each 20ms
     
 
 
@@ -1485,19 +1477,6 @@ def ButtonCompasCal_click():
     mymower.focusOnPage=4
     ConsolePage.tkraise()
 
-
-
-
-
-
-
-
-
-
-
-    
-
-
     
 def ButtonSendSettingToEeprom_click():
     send_pfo_message('sz','1','2','3','4','5','6',)
@@ -1534,19 +1513,14 @@ def ButtonTest_click():
 def ButtonAuto_click():
     mymower.focusOnPage=1
     AutoPage.tkraise()
-    
- 
-    
-    
-   
+     
     
 def ButtonSaveSettingToFile_click():
     settingFileName = filedialog.asksaveasfilename(title="Save As :", initialdir=actualRep, initialfile='myrobotsetting.ini', filetypes = [("All", "*"),("File Setting","*.ini")])    
     if len(settingFileName) > 0:
         fileOnPi = open(settingFileName, 'wb')   # Overwrites any existing file.
         pickle.dump(myRobot, fileOnPi)
-        
-        
+         
 
 def ButtonReadSettingFromFile_click():
     global myRobot
@@ -1818,10 +1792,10 @@ try:
     if DueConnectedOnPi :
         if myOS == "Linux":
             if os.path.exists('/dev/ttyACM0') == True:
-                Due_Serial = serial.Serial('/dev/ttyACM0',115200,timeout=0)
+                Due_Serial = serial.Serial('/dev/ttyACM0',115200,timeout=5)
                 print("Find Serial on ttyACM0")
             if os.path.exists('/dev/ttyACM1') == True:
-                Due_Serial = serial.Serial('/dev/ttyACM1',115200,timeout=0)
+                Due_Serial = serial.Serial('/dev/ttyACM1',115200,timeout=5)
                 print("Find Serial on ttyACM1")
         else:
             Due_Serial = serial.Serial('COM9',115200,timeout=0)
@@ -1899,7 +1873,7 @@ TabSetting=ttk.Notebook(fen1)
 TabSetting.place(x=0,y=0)
 """
 TabSetting=tk.Frame(fen1)
-TabSetting.place(x=0,y=0,width=800,height=380)
+TabSetting.place(x=0,y=0,width=480,height=320)
 
 TabMainCanvas = tk.Canvas(TabSetting, height=280,width=430)
 TabMainCanvas.grid(row=0, column=0,sticky="nsew")
@@ -2966,7 +2940,7 @@ ButtonBackHome.place(x=390, y=200, height=96, width=80)
 """ THE RFID PAGE ***************************************************"""
 
 RfidPage =tk.Frame(fen1)
-RfidPage.place(x=0, y=0, height=300, width=780)
+RfidPage.place(x=0, y=0, height=300, width=480)
 
 
 
@@ -2978,142 +2952,110 @@ with open("tag_list.bin","rb") as fp :
         #rfid_list=[['01254456700','FR0',60,0,0,0,0,0],['01254456711','FR1',61,1,1,0,0,0]]
         rfid_list=pickle.load(fp)
         print("RFID file loaded OK")
-        print(rfid_list)
+        #print(rfid_list)
+        rfid_list.sort()
         tag_list=[]
         for i in range(0,len(rfid_list)):
             tag_list.append(rfid_list[i][0])
         ToDo_list=['RTS','FAST_START','SPEED','NEW_AREA']
         
-            
-
+       
+tk_RfidSlidderIndex.set(0)
+RfidSlidderIndex=0
 def tag_handler(event):
-    current = combobox.current()   
+    current = comboTagNr.current()   
     if current != -1:
         print(tag_list[current])
-combobox = ttk.Combobox(RfidPage,font=("Arial", 10),values=tag_list, height=20, width=240)
-combobox.bind('<<ComboboxSelected>>', tag_handler)
-combobox.current(0)
-combobox.place(x=100, y=5, height=20, width=240)
-        
+         
 def status_handler(event):
-    current = combobox.current()
+    current = comboTagMowerState.current()
     if current != -1:
         print(myRobot.statusNames[current])
-combobox = ttk.Combobox(RfidPage,font=("Arial", 10),values=myRobot.statusNames, height=20, width=240)
-combobox.bind('<<ComboboxSelected>>', status_handler)
-combobox.current(0)
-combobox.place(x=100, y=35, height=20, width=240)
-
-
 
 def todo_handler(event):
-    current = combobox.current()   
+    current = comboTagToDo.current()   
     if current != -1:
         print(ToDo_list[current])
-combobox = ttk.Combobox(RfidPage,font=("Arial", 10),values=ToDo_list, height=20, width=240)
-combobox.bind('<<ComboboxSelected>>', todo_handler)
-combobox.current(0)
-combobox.place(x=100, y=65, height=20, width=240)
 
-"""
-      
-def OnClick(app):
-    try:
-        item = tree.selection()[0]
-        txtTagNr.delete('1.0', 'end')
-        txtTagNr.insert('1.0', rfid_list[tree.item(item,"text")][0])
-        txtTagMowerState.delete('1.0', 'end')
-        txtTagMowerState.insert('1.0', rfid_list[tree.item(item,"text")][1])
-        txtTagToDo.delete('1.0', 'end')
-        txtTagToDo.insert('1.0', rfid_list[tree.item(item,"text")][2])
-        txtTagSpeed.delete('1.0', 'end')
-        txtTagSpeed.insert('1.0', rfid_list[tree.item(item,"text")][3])
-        txtTagAngle1.delete('1.0', 'end')
-        txtTagAngle1.insert('1.0', rfid_list[tree.item(item,"text")][4])
-        txtTagDist1.delete('1.0', 'end')
-        txtTagDist1.insert('1.0', rfid_list[tree.item(item,"text")][5]) 
-        txtTagAngle2.delete('1.0', 'end')
-        txtTagAngle2.insert('1.0', rfid_list[tree.item(item,"text")][6])
-        txtTagDist2.delete('1.0', 'end')
-        txtTagDist2.insert('1.0', rfid_list[tree.item(item,"text")][7])
-      
-    except:
-        print("Please click on correct line")
-
-
+   
+def refresh_rfidPage(index):
+    comboTagNr.set(rfid_list[index][0])
+    comboTagMowerState.set(rfid_list[index][1])
+    comboTagToDo.set(rfid_list[index][2])
     
-#Building the treeView    
-tree = ttk.Treeview(RfidPage)
-scrollbar1 = ttk.Scrollbar(tree,orient="vertical",command=tree.yview)
-scrollbar1.pack(side=tk.RIGHT, fill=tk.Y)
-tree.configure(yscrollcommand=scrollbar1.set) 
-minwidth = tree.column('#0', option='minwidth')
-tree.column('#0', width=minwidth)
-tree["columns"]=("0","1","2","3","4","5","6","7","8")
-tree.column("0", width=100)
-tree.column("1", width=50)
-tree.column("2", width=50)
-tree.column("3", width=50)
-tree.column("4", width=50)
-tree.column("5", width=50)
-tree.column("6", width=50)
-tree.column("7", width=50)
+    txtTagSpeed.delete('0', 'end')
+    txtTagSpeed.insert('0', rfid_list[index][3])
 
-tree.heading("0", text="Tag")
-tree.heading("1", text="Status")
-tree.heading("2", text="ToDO")
-tree.heading("3", text="Speed")
-tree.heading("4", text="Ang 1")
-tree.heading("5", text="Dist 1")
-tree.heading("6", text="Ang 2")
-tree.heading("7", text="Dist 2")
+    txtTagAngle1.delete('0', 'end')
+    txtTagAngle1.insert('0', rfid_list[index][4])
+    txtTagDist1.delete('0', 'end')
+    txtTagDist1.insert('0', rfid_list[index][5]) 
+    txtTagAngle2.delete('0', 'end')
+    txtTagAngle2.insert('0', rfid_list[index][6])
+    txtTagDist2.delete('0', 'end')
+    txtTagDist2.insert('0', rfid_list[index][7])
 
 
-tree.bind("<ButtonRelease-1>", OnClick)
-tree.place(x=0, y=0, height=300, width=520)
+def rfid_slidder_right_click():
+    global RfidSlidderIndex
+    RfidSlidderIndex=RfidSlidderIndex+1
+    if RfidSlidderIndex>= len(rfid_list) :
+        RfidSlidderIndex=len(rfid_list)-1
+    refresh_rfidPage(RfidSlidderIndex)
+    tk_RfidSlidderIndex.set(RfidSlidderIndex)
+    
+def rfid_slidder_left_click():
+    global RfidSlidderIndex
+    RfidSlidderIndex=RfidSlidderIndex-1
+    if RfidSlidderIndex<=0 :
+        RfidSlidderIndex=0
+    refresh_rfidPage(RfidSlidderIndex)
+    tk_RfidSlidderIndex.set(RfidSlidderIndex)
 
-
-
-def rebuild_treeview():
-    #rebuild the treeview       
-    for i in tree.get_children():
-        tree.delete(i)   
-    for i in range(0,len(rfid_list)):
-        tree.insert("" ,'end' ,    text=i, values=(rfid_list[i][0],rfid_list[i][1],rfid_list[i][2],rfid_list[i][3],rfid_list[i][4],rfid_list[i][5],rfid_list[i][6],rfid_list[i][7]))
-
-    #print(rfid_list)
-"""   
-
-def save_rfid():
+        
+def save_rfid():    
     with open("tag_list.bin","wb") as fp :
-        pickle.dump(rfid_list,fp)
-    
+        pickle.dump(rfid_list,fp)   
         
 def del_rfid_tag():
-    curr = tree.focus()
-    if '' == curr: return
-    #search=txtTagNr.get("1.0",'end-1c')
-    search_code=txtTagNr.get("1.0",'end-1c')
-    search_status=txtTagMowerState.get("1.0",'end-1c')
+    search_code=tag_list[comboTagNr.current()]
+    search_status=myRobot.statusNames[comboTagMowerState.current()]
  
     for i in range(0,len(rfid_list)):
         if (str(rfid_list[i][0])== str(search_code)) & (str(rfid_list[i][1])== str(search_status)):
             for value in rfid_list[:]:
                 if (value[0] == search_code) & (value[1] == search_status):
                     rfid_list.remove(value)
-                    print("remov")
-                
             break
-    
-    rebuild_treeview()
-        
+    RfidSlidderIndex=0
+    tk_RfidSlidderIndex.set(RfidSlidderIndex)
+    refresh_rfidPage(RfidSlidderIndex)
 
 def add_rfid_tag():
+    current = comboTagMowerState.current()
+    global RfidSlidderIndex
     #print(rfid_list)
-    malist=[txtTagNr.get("1.0",'end-1c'),txtTagMowerState.get("1.0",'end-1c'),txtTagToDo.get("1.0",'end-1c'),txtTagSpeed.get("1.0",'end-1c'),txtTagAngle1.get("1.0",'end-1c'),txtTagDist1.get("1.0",'end-1c'),txtTagAngle2.get("1.0",'end-1c'),txtTagDist2.get("1.0",'end-1c')]
+    malist=[tag_list[comboTagNr.current()],myRobot.statusNames[comboTagMowerState.current()],ToDo_list[comboTagToDo.current()],txtTagSpeed.get(),txtTagAngle1.get(),txtTagDist1.get(),txtTagAngle2.get(),txtTagDist2.get()]
+    print()
+    print(malist)
+    print()
     rfid_list.append(malist)
-    #print(rfid_list)
-    rebuild_treeview()
+    print(rfid_list)
+   
+    RfidSlidderIndex=0
+    tk_RfidSlidderIndex.set(RfidSlidderIndex)
+    refresh_rfidPage(RfidSlidderIndex)
+
+def new_rfid_tag(tag_id):
+    
+    print(rfid_list)
+    malist=[tag_id,'WAIT','SPEED','0','0','0','0','0']
+    print()
+    print(malist)
+    print()
+    rfid_list.append(malist)
+    print(rfid_list)
+    
 
 def test1():   
                     
@@ -3127,66 +3069,81 @@ def test1():
             
             print("trouv")
             print(rfid_list[i])
-   
-     
+            
+comboTagNr = ttk.Combobox(RfidPage,font=("Arial", 14, 'bold'),values=tag_list, height=8, width=20)#height=8 the list show 8 lines
+comboTagNr.bind('<<ComboboxSelected>>', tag_handler)
+comboTagNr.place(x=100, y=5, height=30, width=240)
+
+comboTagMowerState = ttk.Combobox(RfidPage,font=("Arial", 14, 'bold'),values=myRobot.statusNames, height=8, width=20)
+comboTagMowerState.bind('<<ComboboxSelected>>', status_handler)
+comboTagMowerState.place(x=100, y=40, height=30, width=240)  
+
+comboTagToDo = ttk.Combobox(RfidPage,font=("Arial", 14, 'bold'),values=ToDo_list, height=8, width=20)
+comboTagToDo.bind('<<ComboboxSelected>>', todo_handler)
+comboTagToDo.place(x=100, y=75, height=30, width=240)
 
 tk.Label(RfidPage,text="TAG Nr:",font=("Arial", 10), fg='green').place(x=5,y=5, height=20, width=80)
-tk.Label(RfidPage,text="Status:",font=("Arial", 10), fg='green').place(x=5,y=25, height=20, width=80)
-tk.Label(RfidPage,text="What to Do:",font=("Arial", 10), fg='green').place(x=5,y=45, height=20, width=80)
-tk.Label(RfidPage,text="Speed:",font=("Arial", 10), fg='green').place(x=5,y=65, height=20, width=80)
-tk.Label(RfidPage,text="Angle 1:",font=("Arial", 10), fg='green').place(x=5,y=85, height=20, width=80)
-tk.Label(RfidPage,text="Dist 1:",font=("Arial", 10), fg='green').place(x=5,y=105, height=20, width=80)
-tk.Label(RfidPage,text="Angle 2:",font=("Arial", 10), fg='green').place(x=5,y=125, height=20, width=80)
-tk.Label(RfidPage,text="Dist 2:",font=("Arial", 10), fg='green').place(x=5,y=145, height=20, width=80)
-"""
-txtTagNr = tk.Text(RfidPage)
-txtTagNr.place(x=630,y=5,width=120, height=20)
-txtTagNr.delete('1.0', 'end')
-txtTagNr.insert('1.0', rfid_list[0][0])
-txtTagMowerState = tk.Text(RfidPage)
-txtTagMowerState.place(x=630,y=25,width=120, height=20)
-txtTagMowerState.delete('1.0', 'end')
-txtTagMowerState.insert('1.0', rfid_list[0][1])
-txtTagToDo = tk.Text(RfidPage)
-txtTagToDo.place(x=630,y=45,width=120, height=20)
-txtTagToDo.delete('1.0', 'end')
-#txtTagToDo.insert('1.0', rfid_list[0][2])
-"""
-txtTagSpeed = tk.Text(RfidPage)
-txtTagSpeed.place(x=100,y=95,width=120, height=20)
-txtTagSpeed.delete('1.0', 'end')
-txtTagSpeed.insert('1.0', rfid_list[0][3])
-txtTagAngle1 = tk.Text(RfidPage)
-txtTagAngle1.place(x=100,y=125,width=120, height=20)
-txtTagAngle1.delete('1.0', 'end')
-txtTagAngle1.insert('1.0', rfid_list[0][4])
-txtTagDist1 = tk.Text(RfidPage)
-txtTagDist1.place(x=100,y=155,width=120, height=20)
-txtTagDist1.delete('1.0', 'end')
-txtTagDist1.insert('1.0', rfid_list[0][5])
-txtTagAngle2 = tk.Text(RfidPage)
-txtTagAngle2.place(x=100,y=185,width=120, height=20)
-txtTagAngle2.delete('1.0', 'end')
-txtTagAngle2.insert('1.0', rfid_list[0][6])
-txtTagDist2 = tk.Text(RfidPage)
-txtTagDist2.place(x=100,y=215,width=120, height=20)
-txtTagDist2.delete('1.0', 'end')
-txtTagDist2.insert('1.0', rfid_list[0][7])
+tk.Label(RfidPage,text="Status:",font=("Arial", 10), fg='green').place(x=5,y=40, height=20, width=80)
+tk.Label(RfidPage,text="What to Do:",font=("Arial", 10), fg='green').place(x=5,y=75, height=20, width=80)
+
+tk.Label(RfidPage,text="Speed:",font=("Arial", 10), fg='green').place(x=5,y=120, height=20, width=80)
+txtTagSpeed = tk.Spinbox(RfidPage,font=("Arial", 24, 'bold'), justify='center',from_=0, to=255)
+txtTagSpeed.place(x=80,y=110,width=100, height=50)
+txtTagSpeed.config(repeatdelay=500,repeatinterval=200)
+txtTagSpeed.delete('0', 'end')
+txtTagSpeed.insert('0', rfid_list[0][3])
+
+tk.Label(RfidPage,text="Angle 1:",font=("Arial", 10), fg='green').place(x=5,y=185, height=20, width=80)
+txtTagAngle1 = tk.Spinbox(RfidPage,font=("Arial", 24, 'bold'), justify='center',from_=-180, to=180)
+txtTagAngle1.place(x=80,y=170,width=100, height=50)
+txtTagAngle1.config(repeatdelay=500,repeatinterval=200)
+txtTagAngle1.delete('0', 'end')
+txtTagAngle1.insert('0', rfid_list[0][4])
+
+tk.Label(RfidPage,text="Dist 1:",font=("Arial", 10), fg='green').place(x=5,y=245, height=20, width=80)
+txtTagDist1 = tk.Spinbox(RfidPage,font=("Arial", 24, 'bold'), justify='center',from_=0, to=3000)
+txtTagDist1.place(x=80,y=230,width=100, height=50)
+txtTagDist1.config(repeatdelay=500,repeatinterval=200)
+txtTagDist1.delete('0', 'end')
+txtTagDist1.insert('0', rfid_list[0][5])
+
+tk.Label(RfidPage,text="Angle 2:",font=("Arial", 10), fg='green').place(x=190,y=185, height=20, width=80)
+txtTagAngle2 = tk.Spinbox(RfidPage,font=("Arial", 24, 'bold'), justify='center',from_=-180, to=180)
+txtTagAngle2.place(x=260,y=170,width=100, height=50)
+txtTagAngle2.config(repeatdelay=500,repeatinterval=200)
+txtTagAngle2.delete('0', 'end')
+txtTagAngle2.insert('0', rfid_list[0][6])
+
+tk.Label(RfidPage,text="Dist 2:",font=("Arial", 10), fg='green').place(x=195,y=245, height=20, width=80)
+txtTagDist2 = tk.Spinbox(RfidPage,font=("Arial", 24, 'bold'), justify='center',from_=0, to=3000)
+txtTagDist2.place(x=260,y=230,width=100, height=50)
+txtTagDist2.config(repeatdelay=500,repeatinterval=200)
+txtTagDist2.delete('0', 'end')
+txtTagDist2.insert('0', rfid_list[0][7])
+
+RfidSlidderIndex=0
+tk_RfidSlidderIndex.set(RfidSlidderIndex)
+refresh_rfidPage(RfidSlidderIndex)
 
 
-ButtonAdd = tk.Button(RfidPage, text="Add This Tag",command = add_rfid_tag)
-ButtonAdd.place(x=530, y=170, height=30, width=110)
+txtRfidSlidder=tk.Label(RfidPage,borderwidth=1,relief="solid",textvariable=tk_RfidSlidderIndex,font=("Arial", 14), fg='green')
+txtRfidSlidder.place(x=379,y=5, height=30, width=40)
+ButtonRfidSlidderLeft= tk.Button(RfidPage,font=("Arial", 18,'bold'), text="<",command = rfid_slidder_left_click)
+ButtonRfidSlidderLeft.place(x=350, y=5, height=30, width=30)
+ButtonRfidSlidderRight= tk.Button(RfidPage,font=("Arial", 18,'bold'), text=">",command = rfid_slidder_right_click)
+ButtonRfidSlidderRight.place(x=418, y=5, height=30, width=30)
 
-ButtonDel = tk.Button(RfidPage, text="Delete this Tag",command = del_rfid_tag)
-ButtonDel.place(x=660, y=170, height=30, width=100)
+ButtonAdd = tk.Button(RfidPage,font=("Arial", 14), text="Add",command = add_rfid_tag)
+ButtonAdd.place(x=390, y=70, height=30, width=80)
 
-ButtonSave = tk.Button(RfidPage, text="Save to File",command = save_rfid)
-ButtonSave.place(x=530, y=210, height=60, width=140)
+ButtonDel = tk.Button(RfidPage,font=("Arial", 14), text="Delete",command = del_rfid_tag)
+ButtonDel.place(x=390, y=110, height=30, width=80)
 
-#ButtonTest = tk.Button(RfidPage, text="seek test",command = test1)
-#ButtonTest.place(x=530, y=260, height=60, width=140)
+ButtonSave = tk.Button(RfidPage,font=("Arial", 14), text="Save",command = save_rfid)
+ButtonSave.place(x=390, y=150, height=30, width=80)
 
-#rebuild_treeview()
+#ButtonTest = tk.Button(RfidPage, text="seek test",command = rfid_slidder_left_click)
+#ButtonTest.place(x=300, y=120, height=30, width=50)
 
 
 ButtonBackHome = tk.Button(RfidPage, image=imgBack, command = ButtonBackToMain_click)
@@ -3246,7 +3203,7 @@ def ButtonOdoRotNonStop_click():
     #send_pfo_message('ru','1','2','3','4','5','6',)
 
 TestPage =tk.Frame(fen1)
-TestPage.place(x=0, y=0, height=320, width=480)
+TestPage.place(x=0, y=0, height=300, width=480)
 
 ButtonOdo1TurnFw = tk.Button(TestPage)
 ButtonOdo1TurnFw.place(x=5,y=15, height=35, width=180)
@@ -3328,28 +3285,28 @@ ButtonAuto = tk.Button(MainCanvasFrame,image=imgAuto,width=100,height=130,comman
 ButtonAuto.grid(row=1, column=0)
 ButtonManual = tk.Button(MainCanvasFrame,image=imgManual,command = ButtonManual_click,width=100,height=130)
 ButtonManual.grid(row=1, column=1)
-#ButtonSetting = tk.Button(MainCanvasFrame,image=imgSetting,command = ButtonSetting_click,width=100,height=130)
-#ButtonSetting.grid(row=1, column=3)
 ButtonConsole = tk.Button(MainCanvasFrame,image=imgConsole,command = ButtonConsole_click,width=100,height=130)
 ButtonConsole.grid(row=1, column=2)
+ButtonCamera = tk.Button(MainCanvasFrame, image=imgCamera, command = ButtonCamera_click,width=100,height=130)
+ButtonCamera.grid(row=1, column=3)
+
+ButtonSetting = tk.Button(MainCanvasFrame,image=imgSetting,command = ButtonSetting_click,width=100,height=130)
+ButtonSetting.grid(row=2, column=0)
+ButtonRfid = tk.Button(MainCanvasFrame, image=imgRfid, command = ButtonRfid_click,width=100,height=130)
+ButtonRfid.grid(row=2, column=1)
+ButtonGps = tk.Button(MainCanvasFrame, image=imgGps, command = ButtonGps_click,width=100,height=130)
+ButtonGps.grid(row=2, column=2)
+ButtonPowerOff = tk.Button(MainCanvasFrame, image=imgPowerOff, command = ButtonPowerOff_click,width=100,height=130)
+ButtonPowerOff.grid(row=2, column=3,columnspan=1)
 
 #ButtonPlot = tk.Button(MainCanvasFrame, image=imgPlot, command = ButtonPlot_click,width=100,height=130)
 #ButtonPlot.grid(row=2, column=0)
 #ButtonSchedule = tk.Button(MainCanvasFrame, image=imgSchedule, command = ButtonSchedule_click,width=100,height=130)
 #ButtonSchedule.grid(row=2, column=1)
-ButtonCamera = tk.Button(MainCanvasFrame, image=imgCamera, command = ButtonCamera_click,width=100,height=130)
-ButtonCamera.grid(row=1, column=3)
-ButtonRfid = tk.Button(MainCanvasFrame, image=imgRfid, command = ButtonRfid_click,width=100,height=130)
-ButtonRfid.grid(row=2, column=1)
-
 #ButtonTest = tk.Button(MainCanvasFrame,image=imgTest,command = ButtonTest_click,width=100,height=130)
 #ButtonTest.grid(row=3, column=0)
-ButtonGps = tk.Button(MainCanvasFrame, image=imgGps, command = ButtonGps_click,width=100,height=130)
-ButtonGps.grid(row=2, column=2)
-ButtonPowerOff = tk.Button(MainCanvasFrame, image=imgPowerOff, command = ButtonPowerOff_click,width=100,height=130)
-ButtonPowerOff.grid(row=3, column=2,columnspan=1)
-ButtonExitProg = tk.Button(MainCanvasFrame, image=imgStop, command = ButtonExitProg_click,width=100,height=130)
-ButtonExitProg.grid(row=3, column=3,columnspan=1)
+#ButtonExitProg = tk.Button(MainCanvasFrame, image=imgStop, command = ButtonExitProg_click,width=100,height=130)
+#ButtonExitProg.grid(row=3, column=3,columnspan=1)
 
 yscrollbar = tk.Scrollbar(MainPage, orient=tk.VERTICAL,width=40)
 yscrollbar.config(command=MainCanvas.yview)
