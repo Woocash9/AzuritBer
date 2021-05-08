@@ -3,6 +3,7 @@
 
 #define ICM20948_ENABLE_DEBUGGING
 #define INV_SUCCESS ICM_20948_Stat_Ok
+#define AD0_VAL 0     // The value of the last bit of the I2C address.
 
 class ICM20948_9DMP : public ICM_20948_I2C{
 	private:

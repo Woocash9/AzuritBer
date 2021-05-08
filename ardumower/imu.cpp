@@ -76,8 +76,8 @@ ICM20948_9DMP imu;
 #define ADDR 600
 #define MAGIC 6
 
-
 void IMUClass::begin() {
+	robot.imuUse =0;
   if (!robot.imuUse) return;
   loadCalib();
   printCalib();
