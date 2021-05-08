@@ -47,11 +47,11 @@
 //and comyaw is the result of the compass  (not accurate but reliable so use as absolute)
 
 #include "imu.h"
-#include "SparkFunMPU9250-DMP.h"
 #include "mower.h"
 //#include "i2c.h"
 #include "robot.h"
-
+/* #include "src/MPU9250/SparkFunMPU9250-DMP.h" */
+#include "src/ICM20948/ICM20948_9DMP.h"
 #include "flashmem.h"
 
 
@@ -70,8 +70,8 @@ float   Gyro_pitch_output, Gyro_roll_output;
 float resultheading;
 float chord_x,  chord_y,  chord_z;                              // Used for calculating scale factors
 float chord_average;
-MPU9250_DMP imu;
-
+/* MPU9250_DMP imu; */
+ICM20948_9DMP imu;
 
 #define ADDR 600
 #define MAGIC 6
@@ -110,7 +110,8 @@ void IMUClass::begin() {
     Console.println("Connected with MPU-9250/MPU-9255");
   }
 
-  imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL, 10); 
+  /* imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL, 10); */ 
+  // woocash - DMP initialization included in begin method
   // imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT , 10);
 
   // if the IMU not move for small duration it reduce the refresh rate,certainly autocalibration starting issue ?????????????????????????
