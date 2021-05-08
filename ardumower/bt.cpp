@@ -225,22 +225,26 @@ boolean BluetoothConfig::detectBaudrate(boolean quickBaudScan){
 void BluetoothConfig::detectModuleType(){
   Console.println();
   Console.println(F("detecting BT type..."));
+  watchdogReset();
   writeReadBT("AT+VERSION");  
   if (btResult.startsWith("OKlinvor")){
     Console.println(F("=>it's a linvor/HC06"));
     btType = BT_LINVOR_HC06;
     return;
-  }     
+  }
+  watchdogReset();
   writeReadBT("AT+VERSION?\r\n");  
   if (btResult.indexOf("OK") != -1){
     Console.println(F("=>must be a HC03/04/05 ?"));      
     btType = BT_HC05;
   }  
+  watchdogReset();
   writeReadBT("AT+VERSION\r\n");
   if (btResult.indexOf("ModiaTek") != -1){
     Console.println(F("=>it's a FBT06/MBTV4"));
     btType = BT_FBT06_MBTV4;
   }
+  watchdogReset();
 }
 
 void BluetoothConfig::setParams(String name, int pin, long baudrate, boolean quickBaudScan) {

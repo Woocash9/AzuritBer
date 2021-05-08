@@ -1,6 +1,8 @@
 #include "mower.h"
 #include "robot.h"
 #include "RpiRemote.h"
+#include "globals.h"
+
 #define N_FLOATS 4
 
 uint16_t var_checksum;

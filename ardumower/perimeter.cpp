@@ -144,8 +144,8 @@ void PerimeterClass::begin(byte idx0Pin, byte idx1Pin) {
 
 
   //ADCMan.setupChannel(idx0Pin, 1024, true);  //128*4*2
-  // ADCMan.setCapture(idx0Pin, adcSampleCount*2, true);
-  // ADCMan.setCapture(idx1Pin, adcSampleCount*2, true);
+  // ADCMan.setupChannel(idx0Pin, adcSampleCount*2, true);
+  // ADCMan.setupChannel(idx1Pin, adcSampleCount*2, true);
 
   Console.print(F("matchSignal size="));
   Console.println(sigcode_size);

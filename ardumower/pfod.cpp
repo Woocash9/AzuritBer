@@ -235,7 +235,8 @@ void RemoteControl::sendPlotMenu(boolean update) {
 
 void RemoteControl::sendSettingsMenu(boolean update) {
   if (update) serialPort->print("{:"); else serialPort->print(F("{.Settings"));
-  if ((robot->stateCurr == STATE_OFF) || (robot->stateCurr == STATE_STATION))  //deactivate the save setting if the mower is not OFF to avoid zombie
+  if ((robot->stateCurr == STATE_OFF) || (robot->stateCurr == STATE_STATION) 
+		  || (robot->stateCurr == STATE_STATION_CHARGING))  //deactivate the save setting if the mower is not OFF to avoid zombie
   {
     serialPort->print(F("|sz~Save settings|s1~Motor|s2~Mow|s3~Bumper/Button|s4~Sonar|s5~Perimeter|s6~Lawn sensor|s7~IMU|s8~Raspberry"));
     serialPort->println(F("|s9~Battery|s10~Station|s11~Odometry|s13~Rain Temp Humid|s15~Drop sensor|s14~GPS RFID|i~Timer|s12~Date/time|sx~Factory settings|s16~ByLane Setting}"));
@@ -927,9 +928,12 @@ void RemoteControl::sendOdometryMenu(boolean update) {
   serialPort->print(robot->odometryLeft);
   serialPort->print(", ");
   serialPort->println(robot->odometryRight);
-  
-  sendSlider("l04", F("Ticks per one full revolution"), robot->odometryTicksPerRevolution, "", 1, 1500, 500);
-  sendSlider("l01", F("Ticks per cm"), robot->odometryTicksPerCm, "", 0.1, 30, 0.1);
+  serialPort->println(F("|l03~RPM Motor l, r "));
+  serialPort->print(robot->motorLeftRpmCurr);
+  serialPort->print(", ");
+  serialPort->println(robot->motorRightRpmCurr);
+  sendSlider("l04", F("Ticks per one full revolution"), robot->odometryTicksPerRevolution, "", 1, 1300, 400);
+  sendSlider("l01", F("Ticks per cm"), robot->odometryTicksPerCm, "", 0.1, 20, 1);
   sendSlider("l02", F("Wheel base cm"), robot->odometryWheelBaseCm, "", 0.1, 50, 5);
 
   serialPort->println("}");

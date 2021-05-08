@@ -7,9 +7,16 @@
 #ifndef MOWER_H
 #define MOWER_H
 
-#include <Arduino.h>
-#include "robot.h"
 
+
+#ifdef __cplusplus
+  #include "udpserial.h"
+  #include "sdserial.h"
+  #include "src/agcm4/adafruit_grand_central.h"
+#endif
+
+
+#include "robot.h"
 #include "drivers.h"
 #include "bt.h"
 
@@ -124,10 +131,9 @@
 #define CONSOLE_BAUDRATE    115200       // baudrate used for PC or raspberry
 
 
-#define Enable_DueWatchdog true
-//#define Enable_DueWatchdog false
+/* #define Enable_DueWatchdog true */
+#define Enable_DueWatchdog false
 
-#define RaspberryPIPort SerialUSB  //The PI is connected on NATIVE USB port over USB cable
 
 #define ESP8266port Serial1  
 #define ESP8266_BAUDRATE    115200      // baudrate used for communication with esp8266 Wifi module

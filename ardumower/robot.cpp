@@ -36,7 +36,7 @@
 #include "perimeter.h"
 #include "mower.h"
 #include "timer.h"
-#include "DHT.h"
+#include "src/DHT/DHT.h"
 #include "RpiRemote.h"
 
 

@@ -2,7 +2,7 @@
 #define FLASHMEM_H
 
 #include <Arduino.h>
-
+#include "mower.h"
 
 class FlashClass
 {

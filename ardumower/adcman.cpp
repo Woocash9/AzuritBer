@@ -1,5 +1,7 @@
 // NOTE: requires Arduino Due
-#include <chip.h>
+#if defined(_SAM3XA_)
+	#include <chip.h>
+#endif
 #include <Arduino.h>
 #include <limits.h>
 #include "adcman.h"
@@ -34,46 +36,94 @@ ADCManager::ADCManager(){
 
 
 void ADCManager::begin(){    
-  /*pinMode(A0, INPUT);
-    while(true){
-      Console.println(analogRead(A0));
-    }
-  */
-  // free running ADC mode, f = ( adclock / 21 cycles per conversion )
-  // example f = 19231  Hz:  using ADCCLK=405797 will result in a adcclock=403846 (due to adc_init internal conversion)
-  uint32_t adcclk;
-  switch (sampleRate){
-    case SRATE_38462: adcclk = 811595; break;
-    case SRATE_19231: adcclk = 405797; break;
-    case SRATE_9615 : adcclk = 202898; break;
-  }  
-  pmc_enable_periph_clk (ID_ADC); // To use peripheral, we must enable clock distributon to it
-  adc_init(ADC, SystemCoreClock, adcclk, ADC_STARTUP_FAST); // startup=768 clocks
-  adc_disable_interrupt(ADC, 0xFFFFFFFF);
-  adc_set_resolution (ADC, ADC_12_BITS);  
-  adc_configure_power_save (ADC, ADC_MR_SLEEP_NORMAL, ADC_MR_FWUP_OFF); // Disable sleep
-  adc_configure_timing(ADC, 0, ADC_SETTLING_TIME_3, 1);  // tracking=0, settling=17, transfer=1      
-  adc_set_bias_current (ADC, 1); // Bias current - maximum performance over current consumption
-  adc_disable_tag (ADC);  // it has to do with sequencer, not using it 
-  adc_disable_ts (ADC);   // disable temperature sensor 
-  adc_stop_sequencer (ADC);  // not using it
-  adc_disable_all_channel (ADC);
-  adc_configure_trigger(ADC, ADC_TRIG_SW, 1); // triggering from software, freerunning mode      
-  adc_start( ADC );  
-  
- /* // test conversion
-  setupChannel(A0, 1, false);  
-  setupChannel(A1, 3, false);    
-  while(true){    
-    Console.print("test A0=");
-    Console.print(getVoltage(A0));
-    Console.print("  A1=");
-    Console.println(getVoltage(A1));    
-    Console.print("  cnvs=");
-    Console.println(getConvCounter());    
-    run();
-    delay(500);        
-  }*/  
+	/*pinMode(A0, INPUT);
+	  while(true){
+	  Console.println(analogRead(A0));
+	  }
+	  */
+	// free running ADC mode, f = ( adclock / 21 cycles per conversion )
+	// example f = 19231  Hz:  using ADCCLK=405797 will result in a adcclock=403846 (due to adc_init internal conversion)
+	uint32_t adcclk;
+	switch (sampleRate){
+		case SRATE_38462: adcclk = 811595; break;
+		case SRATE_19231: adcclk = 405797; break;
+		case SRATE_9615 : adcclk = 202898; break;
+	}  
+#if defined(_SAM3XA_)
+	pmc_enable_periph_clk (ID_ADC); // To use peripheral, we must enable clock distributon to it
+	adc_init(ADC, SystemCoreClock, adcclk, ADC_STARTUP_FAST); // startup=768 clocks
+	adc_disable_interrupt(ADC, 0xFFFFFFFF);
+	adc_set_resolution (ADC, ADC_12_BITS);  
+	adc_configure_power_save (ADC, ADC_MR_SLEEP_NORMAL, ADC_MR_FWUP_OFF); // Disable sleep
+	adc_configure_timing(ADC, 0, ADC_SETTLING_TIME_3, 1);  // tracking=0, settling=17, transfer=1      
+	adc_set_bias_current (ADC, 1); // Bias current - maximum performance over current consumption
+	adc_disable_tag (ADC);  // it has to do with sequencer, not using it 
+	adc_disable_ts (ADC);   // disable temperature sensor 
+	adc_stop_sequencer (ADC);  // not using it
+	adc_disable_all_channel (ADC);
+	adc_configure_trigger(ADC, ADC_TRIG_SW, 1); // triggering from software, freerunning mode      
+	adc_start( ADC );  
+#elif defined(__SAMD51__) 
+//FIXME not yet finished. We need interrupts!
+	MCLK->APBDMASK.bit.ADC0_ = 1;
+	//Use GCLK1, channel it for ADC0, select DFLL(48MHz) as source and make sure no divider is selected
+	GCLK->PCHCTRL[ADC0_GCLK_ID].reg = GCLK_PCHCTRL_GEN_GCLK1_Val | (1 << GCLK_PCHCTRL_CHEN_Pos); // enable gen clock 1 as source for ADC channel
+	GCLK->GENCTRL[0].reg = GCLK_GENCTRL_SRC_DFLL | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_DIV(1);
+	GCLK->GENCTRL[0].bit.DIVSEL = 0;
+	GCLK->GENCTRL[0].bit.DIV = 0;
+
+	//Divide 8MHz clock by 4 to obtain 2MHz clock to adc
+	ADC0->CTRLA.bit.PRESCALER = ADC_CTRLA_PRESCALER_DIV4_Val;
+
+	//Choose 12-bit resolution
+	ADC0->CTRLB.bit.RESSEL = ADC_CTRLB_RESSEL_12BIT_Val;
+	//Ensuring freerun is activated
+	ADC0->CTRLB.bit.FREERUN = 1;
+
+	//waiting for synchronisation
+	while(ADC0->SYNCBUSY.reg & ADC_SYNCBUSY_CTRLB);
+
+	//Sampletime set to 0
+	ADC0->SAMPCTRL.reg = 0;
+
+	//Waiting for synchronisation
+	while(ADC0->SYNCBUSY.reg & ADC_SYNCBUSY_SAMPCTRL);
+
+	ADC0->INPUTCTRL.reg = ADC_INPUTCTRL_MUXNEG_GND;   // No Negative input (Internal Ground)
+
+	while(ADC0->SYNCBUSY.reg & ADC_SYNCBUSY_INPUTCTRL);  //wait for sync
+
+	// Averaging (see datasheet table in AVGCTRL register description)
+	ADC0->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |    // 1 sample only (no oversampling nor averaging)
+		ADC_AVGCTRL_ADJRES(0x0ul);   // Adjusting result by 0
+
+	//Wait for synchronisation
+	while(ADC0->SYNCBUSY.reg & ADC_SYNCBUSY_AVGCTRL);
+
+	//Select VDDANA (3.3V chip supply voltage as reference)
+	ADC0->REFCTRL.reg = ADC_REFCTRL_REFSEL_INTVCC1;
+
+	//Enable ADC
+	ADC0->SWTRIG.bit.START = 1;
+	ADC0->CTRLA.bit.ENABLE = 1;
+
+	//wait for ADC to be ready
+	while(ADC0->SYNCBUSY.bit.ENABLE);
+#endif
+
+	/* // test conversion
+	   setupChannel(A0, 1, false);  
+	   setupChannel(A1, 3, false);    
+	   while(true){    
+	   Console.print("test A0=");
+	   Console.print(getVoltage(A0));
+	   Console.print("  A1=");
+	   Console.println(getVoltage(A1));    
+	   Console.print("  cnvs=");
+	   Console.println(getConvCounter());    
+	   run();
+	   delay(500);        
+	   }*/  
 }
 
 void ADCManager::printInfo(){
@@ -159,38 +209,54 @@ float ADCManager::getVoltage(byte pin){
 }
 
 void ADCManager::init(byte ch){
+#if defined(_SAM3XA_)
   //adc_disable_channel_differential_input(ADC, (adc_channel_num_t)g_APinDescription[ channels[ch].pin ].ulADCChannelNumber );
   // configure Peripheral DMA  
   adc_enable_channel( ADC, (adc_channel_num_t)g_APinDescription[ channels[ch].pin ].ulADCChannelNumber  );   
   delayMicroseconds(100);  
   PDC_ADC->PERIPH_RPR = (uint32_t) dmaData; // address of buffer
   PDC_ADC->PERIPH_RCR = channels[ch].sampleCount;
-  PDC_ADC->PERIPH_PTCR = PERIPH_PTCR_RXTEN; // enable receive      
+  PDC_ADC->PERIPH_PTCR = PERIPH_PTCR_RXTEN; // enable receive
+#elif defined(__SAMD51__)
+  //FIXME this is just a test. Propper section of channel is required
+  ADC0->INPUTCTRL.bit.MUXPOS = ADC_INPUTCTRL_MUXPOS_PTAT;
+  ADC0->SWTRIG.bit.START = 1;
+#endif
 }
 
 // start another conversion
 void ADCManager::run(){
-  if ((adc_get_status(ADC) & ADC_ISR_ENDRX) == 0) return; // conversion busy
-  // post-process sampling data
-  if (chCurr != INVALID_CHANNEL){
-    adc_disable_channel( ADC, (adc_channel_num_t)g_APinDescription[ channels[chCurr].pin ].ulADCChannelNumber  );   
-    postProcess(chCurr);
-    channels[chCurr].convComplete = true;
-    chCurr = INVALID_CHANNEL;
-    convCounter++;
-  } 
-  // start next channel sampling    
-  for (int i=0; i < ADC_CHANNEL_COUNT_MAX; i++){
-    chNext++;
-    if (chNext == ADC_CHANNEL_COUNT_MAX) chNext = 0;
-    if (channels[chNext].sampleCount != 0){
-      if (!channels[chNext].convComplete){
-        chCurr = chNext;
-        init(chCurr);               
-        break;
-      }
-    }
-  }
+#if defined(_SAM3XA_)
+	if ((adc_get_status(ADC) & ADC_ISR_ENDRX) == 0) return; // conversion busy
+#elif defined(__SAMD51__)
+	//FIXME is this ok if we use interrupts?
+	if (!ADC0->INTFLAG.bit.RESRDY) return; // conversion busy
+#endif
+	// post-process sampling data
+	if (chCurr != INVALID_CHANNEL){
+#if defined(_SAM3XA_)
+		adc_disable_channel( ADC, (adc_channel_num_t)g_APinDescription[ channels[chCurr].pin ].ulADCChannelNumber  );   
+		postProcess(chCurr);
+#elif defined(__SAMD51__)
+		//FIXME this is totally wrong, results should be gathered based on interrupts
+		channels[chCurr].value = ADC0->RESULT.reg;
+#endif
+		channels[chCurr].convComplete = true;
+		chCurr = INVALID_CHANNEL;
+		convCounter++;
+	} 
+	// start next channel sampling    
+	for (int i=0; i < ADC_CHANNEL_COUNT_MAX; i++){
+		chNext++;
+		if (chNext == ADC_CHANNEL_COUNT_MAX) chNext = 0;
+		if (channels[chNext].sampleCount != 0){
+			if (!channels[chNext].convComplete){
+				chCurr = chNext;
+				init(chCurr);               
+				break;
+			}
+		}
+	}
 }
 
 

@@ -2,6 +2,8 @@
 #include "robot.h"
 #include "mower.h"
 #include "gps.h"
+#include "globals.h"
+
 //#define N_FLOATS 4
 
 

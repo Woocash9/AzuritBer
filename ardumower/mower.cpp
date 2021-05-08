@@ -262,7 +262,9 @@ Mower::Mower() {
   // -----------configuration end-------------------------------------
 }
 
-
+#ifndef __SAMD51__
+//TODO Woocash - How to implement this in SAMD51?
+//
 // remote control (RC) ppm signal change interrupt
 ISR(PCINT0_vect) {
   unsigned long timeMicros = micros();
@@ -292,6 +294,8 @@ ISR(PCINT2_vect)
     oldOdoPins_B = actPins_B;
   }
 }
+
+#endif
 
 
 NewPing NewSonarLeft(pinSonarLeftTrigger, pinSonarLeftEcho, 110);
