@@ -42,11 +42,13 @@ IPAddress dns(10, 0, 0, 1); // put here one dns (IP of your routeur)
 #define WORKING_TIMEOUT_MINS 300  // timeout for perimeter switch-off if robot not in station (minutes)
 #define PERI_CURRENT_MIN    100    // minimum milliAmpere for cutting wire detection
 
-#define I2C_SDA 4
-#define I2C_SCL 15
+#define I2C_SDA 21
+#define I2C_SCL 22 
 #define PERI_CURRENT_CHANNEL 1
 #define MOWER_STATION_CHANNEL 2
 
+#define pinPushButton      33  //           (connect to Button) //R1 2.2K R2 3.3K
+#define pinRainFlow       35  //           (connect to Rain box) //R3 2.2K R4 3.3K
 
 // ---- choose only one perimeter signal code ----
 //#define SIGCODE_0	//simple square test code
@@ -65,8 +67,8 @@ struct LOOP{
 }; 
 
 LOOP loops[] = {
-	{"MAIN", 19,18,21} //area 0 - {pinIN1, pinIN2, pinEnable}
-	,{"FRONT", 13,12,14} //area 1 - {pinIN1, pinIN2, pinEnable}
+	{"MAIN", 2,0,15} //area 0 - {pinIN1, pinIN2, pinEnable}
+	,{"FRONT", 4,16,17} //area 1 - {pinIN1, pinIN2, pinEnable}
 };
 
 

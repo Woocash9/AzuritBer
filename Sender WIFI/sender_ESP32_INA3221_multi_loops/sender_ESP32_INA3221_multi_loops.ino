@@ -8,8 +8,6 @@ hw_timer_t * timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 
-#define pinPushButton      34  //           (connect to Button) //R1 2.2K R2 3.3K
-#define pinRainFlow       35  //           (connect to Rain box) //R3 2.2K R4 3.3K
 
 #define SIZEOF(x) ( sizeof x / sizeof x[0] ) //macro for array elements calculation
 
@@ -99,7 +97,7 @@ void setup(){
 		pinMode(loops[i].pEnable,OUTPUT);
 	}
 
-	pinMode(pinPushButton, INPUT);
+	pinMode(pinPushButton, INPUT_PULLUP);
 	pinMode(pinRainFlow, INPUT);
 
 	Serial.println("START");
@@ -293,6 +291,22 @@ bool startLoop(uint8_t index){
 	}
 }
 
+bool startNextLoop(){
+	if(activeLoop==NULL){
+		return startLoop(1); //no active loop so far; start with the first one
+	}
+	for(int i=0; i<SIZEOF(loops);i++){
+		if(&loops[i]==activeLoop){ //find index of active loop
+			if(i==SIZEOF(loops)-1){
+				return startLoop(1); //last loop active so start the first one
+			}else{
+				return startLoop(&loops[i+1]); //not last activie so start the next
+			}
+		}
+	}
+	return false;
+}
+
 void loop(){
 	if (millis() >= nextTimeControl) {
 		nextTimeControl = millis() + 2000;  //after debug can set this to 10 secondes
@@ -329,10 +343,10 @@ void loop(){
 	if (millis() >= nextTimeSec) {
 		nextTimeSec = millis() + 1000;
 
-		oled.setTextXY(7, 0);
-		oled.putLine("Heap ");
-		oled.setTextXY(7, 6);
-		oled.putNumber(ESP.getFreeHeap());
+		/* oled.setTextXY(7, 0); */
+		/* oled.putLine("Heap "); */
+		/* oled.setTextXY(7, 6); */
+		/* oled.putNumber(ESP.getFreeHeap()); */
 
 		// woocash
 		/* if(activeLoop){ */
@@ -461,21 +475,14 @@ void loop(){
 		nextTimeCheckButton = millis() + 100;
 		if (StartButtonProcess) {
 			oled.setTextXY(7, 0);
-			oled.putLine("StartButtonPress");
+			oled.putLine("Button Press");
 		}
 
 		Button_pressed = digitalRead(pinPushButton);
-		if (Button_pressed == 1) {
+		if (Button_pressed == LOW) {
 			Serial.println("Button pressed");
-			//WiFiClient client = server.available();
 			workTimeMins = 0;
-			//woocash commented
-			/* if (client) { */
-			/* 	String sResponse, sHeader; */
-			/* 	sResponse = "BUTTON PRESSED"; */
-			/* 	client.print(sResponse); */
-			/* 	client.flush(); */
-			/* } */
+			startNextLoop();
 			nextTimeCheckButton = millis() + 1000;
 			StartButtonProcess = true;
 			nextTimeControl = millis() + 3000;
