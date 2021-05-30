@@ -138,8 +138,14 @@ void PerimeterClass::begin(byte idx0Pin, byte idx1Pin) {
 
   // ADCMan.setupChannel(idx0Pin, ((int)1024 / adcSampleCount) * adcSampleCount, true);
   //ADCMan.setupChannel(idx1Pin, ((int)1024 / adcSampleCount) * adcSampleCount, true);
-  ADCMan.setupChannel(idx0Pin,  2 * adcSampleCount, true);
-  ADCMan.setupChannel(idx1Pin,  2 * adcSampleCount, true);
+
+  // woocash - as in original azurit, currently to many switches in/out with strong signal
+  ADCMan.setupChannel(idx0Pin, ((int)255 / adcSampleCount) * adcSampleCount, true); 
+  ADCMan.setupChannel(idx1Pin, ((int)255 / adcSampleCount) * adcSampleCount, true); 
+
+  // woocash - this is as in original azuritber
+  /* ADCMan.setupChannel(idx0Pin,  2 * adcSampleCount, true); */
+  /* ADCMan.setupChannel(idx1Pin,  2 * adcSampleCount, true); */
 
 
 
@@ -289,7 +295,8 @@ boolean PerimeterClass::isInside() {
 }
 
 boolean PerimeterClass::isInside(byte idx) {
-  if (abs(mag[idx]) > 600) {
+  if (abs(mag[idx]) > 1000) { //azurit version
+  /* if (abs(mag[idx]) > 600) { //azuritber verison */
     // Large signal, the in/out detection is reliable.
     // Using mag yields very fast in/out transition reporting.
     return (mag[idx] < 0);
