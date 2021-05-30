@@ -50,7 +50,7 @@ ICM_20948_Status_e ICM20948_9DMP::configureDMP(void){
 	success &= (enableDMPSensor(INV_ICM20948_SENSOR_RAW_GYROSCOPE) == ICM_20948_Stat_Ok);
 	/* success &= (enableDMPSensor(INV_ICM20948_SENSOR_RAW_ACCELEROMETER) == ICM_20948_Stat_Ok); */
 	/* success &= (enableDMPSensor(INV_ICM20948_SENSOR_MAGNETIC_FIELD_UNCALIBRATED) == ICM_20948_Stat_Ok); */
-	success &= (enableDMPSensor(INV_ICM20948_SENSOR_GEOMAGNETIC_FIELD) == ICM_20948_Stat_Ok);
+	success &= (enableDMPSensor(INV_ICM20948_SENSOR_MAGNETIC_FIELD_UNCALIBRATED) == ICM_20948_Stat_Ok);
 
 	// Configuring DMP to output data at multiple ODRs:
 	// DMP is capable of outputting multiple sensor data at different rates to FIFO.
@@ -58,7 +58,7 @@ ICM_20948_Status_e ICM20948_9DMP::configureDMP(void){
 	// Value = (DMP running rate / ODR ) - 1
 	// E.g. For a 225Hz ODR rate when DMP is running at 225Hz, value = (225/225) - 1 = 0.
 	success &= (setDMPODRrate(DMP_ODR_Reg_Quat6, 0) == ICM_20948_Stat_Ok); // Set to 225Hz
-	success &= (setDMPODRrate(DMP_ODR_Reg_Accel, 0) == ICM_20948_Stat_Ok); // Set to 225Hz
+	/* success &= (setDMPODRrate(DMP_ODR_Reg_Accel, 0) == ICM_20948_Stat_Ok); // Set to 225Hz */
 	success &= (setDMPODRrate(DMP_ODR_Reg_Gyro, 0) == ICM_20948_Stat_Ok); // Set to 225Hz
 	success &= (setDMPODRrate(DMP_ODR_Reg_Cpass, 0) == ICM_20948_Stat_Ok); // Set to 225Hz
 
@@ -101,12 +101,8 @@ unsigned short ICM20948_9DMP::fifoAvailable(void){
 ICM_20948_Status_e ICM20948_9DMP::dmpUpdateFifo(void){
 	icm_20948_DMP_data_t data;
 	readDMPdataFromFIFO(&data);
-	while(status==ICM_20948_Stat_FIFOMoreDataAvail){
-		readDMPdataFromFIFO(&data);
-		delay(1);
-	}
 
-	if(status == ICM_20948_Stat_Ok ){
+	if(status == ICM_20948_Stat_Ok || status == ICM_20948_Stat_FIFOMoreDataAvail ){
 		if ((data.header & DMP_header_bitmap_Quat6) > 0 ){
 			/* qw = data.Quat6.Data.Q0; */
 			/* qx = data.Quat9.Data.Q1;// / 1073741824.0; // Convert to double. Divide by 2^30 */
@@ -117,23 +113,27 @@ ICM_20948_Status_e ICM20948_9DMP::dmpUpdateFifo(void){
 			qz = data.Quat6.Data.Q3;// / 1073741824.0; // Convert to double. Divide by 2^30
 			qw = sqrt( 1.0 - ((qx * qx) + (qy * qy) + (qz * qz)));
 		};
-		/* if ( (data.header & DMP_header_bitmap_Compass) > 0 ){ */
-		if ( (data.header & DMP_header_bitmap_Compass_Calibr) > 0 ){
+		if ( (data.header & DMP_header_bitmap_Compass) > 0 ){
+		/* if ( (data.header & DMP_header_bitmap_Compass_Calibr) > 0 ){ */
 			/* debugPrint(F("my data: ")); */
 			/* debugPrintf(data.Compass_Calibr.Data.Y); */
 			/* debugPrintln(""); */
-			mx = data.Compass_Calibr.Data.X; // Extract the compass data
-			my = data.Compass_Calibr.Data.Y; 
-			mz = data.Compass_Calibr.Data.Z; 
+			/* mx = data.Compass_Calibr.Data.X; // Extract the compass data */
+			/* my = data.Compass_Calibr.Data.Y; */ 
+			/* mz = data.Compass_Calibr.Data.Z; */ 
 			/* debugPrint("data raw, mx:"); */
 			/* Serial.print(data.Compass_Calibr.Data.X); */
 			/* Serial.print(", "); */
 			/* Serial.print(mx); */
 			/* debugPrintln(""); */
-			/* mx = data.Compass.Data.X; // Extract the compass data */
-			/* my = data.Compass.Data.Y; */ 
-			/* mz = data.Compass.Data.Z; */ 
+			mx = data.Compass.Data.X; // Extract the compass data
+			my = data.Compass.Data.Y; 
+			mz = data.Compass.Data.Z; 
 		};
+	}
+	while(status==ICM_20948_Stat_FIFOMoreDataAvail){
+		readDMPdataFromFIFO(&data);
+		delay(1);
 	}
 	return ICM_20948_Stat_Ok; // status;
 };

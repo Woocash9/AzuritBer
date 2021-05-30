@@ -3,7 +3,7 @@
 
 #define ICM20948_ENABLE_DEBUGGING
 #define INV_SUCCESS ICM_20948_Stat_Ok
-#define AD0_VAL 0     // The value of the last bit of the I2C address.
+#define AD0_VAL 1     // The value of the last bit of the I2C address.
 
 class ICM20948_9DMP : public ICM_20948_I2C{
 	private:
@@ -12,6 +12,8 @@ class ICM20948_9DMP : public ICM_20948_I2C{
 	public:
 		int16_t mx, my, mz;
 		long qw, qx, qy, qz;
+		long gx, gy, gz;
+		long ax, ay, az;
 		long temperature;
 		unsigned long time;
 		float pitch, roll, yaw;

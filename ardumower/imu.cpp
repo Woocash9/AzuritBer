@@ -77,7 +77,7 @@ ICM20948_9DMP imu;
 #define MAGIC 6
 
 void IMUClass::begin() {
-	robot.imuUse =0;
+	/* robot.imuUse =0; */
   if (!robot.imuUse) return;
   loadCalib();
   printCalib();
@@ -85,29 +85,14 @@ void IMUClass::begin() {
   Console.println(F("--------------------------------- START IMU GYRO ACCEL -------------------"));
   Console.println(F("--------------------------------------------------------------------------"));
 
-  
-  if (imu.begin() != INV_SUCCESS)
-  {
-    while (1)
-    {
-      Console.println("Unable to communicate with MPU-9250");
-      Console.println("Check connections, and try again.");
-      delay(1000);
-      watchdogReset();
-      delay(1000);
-      watchdogReset();
-      delay(1000);
-      watchdogReset();
-      delay(1000);
-      watchdogReset();
-      delay(1000);
-      watchdogReset();
-      
-      
-    }
-  }
-  else {
-    Console.println("Connected with MPU-9250/MPU-9255");
+
+  if (imu.begin() != INV_SUCCESS){
+	  Console.println("Unable to communicate with MPU-9250");
+	  Console.println("Check connections, and try again.");
+	  robot.imuUse =0;
+	  return;
+  } else {
+	  Console.println("Connected with MPU-9250/MPU-9255");
   }
 
   /* imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL, 10); */ 
