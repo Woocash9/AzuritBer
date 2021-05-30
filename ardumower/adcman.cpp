@@ -44,12 +44,12 @@ void ADCManager::begin(){
 	// free running ADC mode, f = ( adclock / 21 cycles per conversion )
 	// example f = 19231  Hz:  using ADCCLK=405797 will result in a adcclock=403846 (due to adc_init internal conversion)
 	uint32_t adcclk;
+#if defined(_SAM3XA_)
 	switch (sampleRate){
 		case SRATE_38462: adcclk = 811595; break;
 		case SRATE_19231: adcclk = 405797; break;
 		case SRATE_9615 : adcclk = 202898; break;
-	}  
-#if defined(_SAM3XA_)
+	}
 	pmc_enable_periph_clk (ID_ADC); // To use peripheral, we must enable clock distributon to it
 	adc_init(ADC, SystemCoreClock, adcclk, ADC_STARTUP_FAST); // startup=768 clocks
 	adc_disable_interrupt(ADC, 0xFFFFFFFF);
@@ -65,50 +65,50 @@ void ADCManager::begin(){
 	adc_start( ADC );  
 #elif defined(__SAMD51__) 
 //FIXME not yet finished. We need interrupts!
-	MCLK->APBDMASK.bit.ADC0_ = 1;
+	MCLK->APBDMASK.bit.ADC1_ = 1;
 	//Use GCLK1, channel it for ADC0, select DFLL(48MHz) as source and make sure no divider is selected
-	GCLK->PCHCTRL[ADC0_GCLK_ID].reg = GCLK_PCHCTRL_GEN_GCLK1_Val | (1 << GCLK_PCHCTRL_CHEN_Pos); // enable gen clock 1 as source for ADC channel
+	GCLK->PCHCTRL[ADC1_GCLK_ID].reg = GCLK_PCHCTRL_GEN_GCLK0_Val | (1 << GCLK_PCHCTRL_CHEN_Pos); // enable gen clock 1 as source for ADC channel
 	GCLK->GENCTRL[0].reg = GCLK_GENCTRL_SRC_DFLL | GCLK_GENCTRL_GENEN | GCLK_GENCTRL_DIV(1);
 	GCLK->GENCTRL[0].bit.DIVSEL = 0;
 	GCLK->GENCTRL[0].bit.DIV = 0;
 
 	//Divide 8MHz clock by 4 to obtain 2MHz clock to adc
-	ADC0->CTRLA.bit.PRESCALER = ADC_CTRLA_PRESCALER_DIV4_Val;
+	ADC1->CTRLA.bit.PRESCALER = ADC_CTRLA_PRESCALER_DIV4_Val;
 
 	//Choose 12-bit resolution
-	ADC0->CTRLB.bit.RESSEL = ADC_CTRLB_RESSEL_12BIT_Val;
+	ADC1->CTRLB.bit.RESSEL = ADC_CTRLB_RESSEL_12BIT_Val;
 	//Ensuring freerun is activated
-	ADC0->CTRLB.bit.FREERUN = 1;
+	ADC1->CTRLB.bit.FREERUN = 1;
 
 	//waiting for synchronisation
-	while(ADC0->SYNCBUSY.reg & ADC_SYNCBUSY_CTRLB);
+	while(ADC1->SYNCBUSY.reg & ADC_SYNCBUSY_CTRLB);
 
 	//Sampletime set to 0
-	ADC0->SAMPCTRL.reg = 0;
+	ADC1->SAMPCTRL.reg = 0;
 
 	//Waiting for synchronisation
-	while(ADC0->SYNCBUSY.reg & ADC_SYNCBUSY_SAMPCTRL);
+	while(ADC1->SYNCBUSY.reg & ADC_SYNCBUSY_SAMPCTRL);
 
-	ADC0->INPUTCTRL.reg = ADC_INPUTCTRL_MUXNEG_GND;   // No Negative input (Internal Ground)
+	ADC1->INPUTCTRL.reg = ADC_INPUTCTRL_MUXNEG_GND;   // No Negative input (Internal Ground)
 
-	while(ADC0->SYNCBUSY.reg & ADC_SYNCBUSY_INPUTCTRL);  //wait for sync
+	while(ADC1->SYNCBUSY.reg & ADC_SYNCBUSY_INPUTCTRL);  //wait for sync
 
 	// Averaging (see datasheet table in AVGCTRL register description)
-	ADC0->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |    // 1 sample only (no oversampling nor averaging)
+	ADC1->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |    // 1 sample only (no oversampling nor averaging)
 		ADC_AVGCTRL_ADJRES(0x0ul);   // Adjusting result by 0
 
 	//Wait for synchronisation
-	while(ADC0->SYNCBUSY.reg & ADC_SYNCBUSY_AVGCTRL);
+	while(ADC1->SYNCBUSY.reg & ADC_SYNCBUSY_AVGCTRL);
 
 	//Select VDDANA (3.3V chip supply voltage as reference)
-	ADC0->REFCTRL.reg = ADC_REFCTRL_REFSEL_INTVCC1;
+	ADC1->REFCTRL.reg = ADC_REFCTRL_REFSEL_INTVCC1;
 
 	//Enable ADC
-	ADC0->SWTRIG.bit.START = 1;
-	ADC0->CTRLA.bit.ENABLE = 1;
+	ADC1->SWTRIG.bit.START = 1;
+	ADC1->CTRLA.bit.ENABLE = 1;
 
 	//wait for ADC to be ready
-	while(ADC0->SYNCBUSY.bit.ENABLE);
+	while(ADC1->SYNCBUSY.bit.ENABLE);
 #endif
 
 	/* // test conversion
