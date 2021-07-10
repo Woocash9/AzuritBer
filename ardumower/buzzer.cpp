@@ -1,7 +1,7 @@
 #include "buzzer.h"
 #include "config.h"
 #include <Arduino.h>
-#include "DueTimer.h"
+#include "src/due/DueTimer.h"
 #define pinBuzzer 53 
 BuzzerClass Buzzer;
 

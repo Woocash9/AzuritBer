@@ -36,7 +36,7 @@
 // NOTE: Verify in config.h that you have enabled 'USE_MOWER' !
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 #include "mower.h"
-#include "NewPing.h"
+#include "src/NewPing/NewPing.h"
 #include <Arduino.h>
 #include "drivers.h"
 #include "i2c.h"

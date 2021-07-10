@@ -21,8 +21,8 @@
 */
 
 #include "imu.h"
-#include "helper_3dmath.h"
-#include "MPU6050_6Axis_MotionApps20.h"
+/* #include "helper_3dmath.h" */
+#include "src/MPU6050/MPU6050_6Axis_MotionApps20.h"
 #include "mower.h"
 #include "i2c.h"
 #include "robot.h"

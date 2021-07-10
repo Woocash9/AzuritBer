@@ -20,7 +20,7 @@ How to use:
 #ifndef IMU_H
 #define IMU_H
 
-#include "helper_3dmath.h"
+#include "src/MPU6050/helper_3dmath.h"
 //#include "adafruit/Adafruit_Sensor.h"
 //#include "adafruit/Adafruit_BNO055.h"
 //#include "adafruit/imumaths.h"
