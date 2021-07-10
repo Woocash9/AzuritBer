@@ -235,7 +235,8 @@ void RemoteControl::sendPlotMenu(boolean update) {
 
 void RemoteControl::sendSettingsMenu(boolean update) {
   if (update) serialPort->print("{:"); else serialPort->print(F("{.Settings"));
-  if ((robot->stateCurr == STATE_OFF) || (robot->stateCurr == STATE_STATION))  //deactivate the save setting if the mower is not OFF to avoid zombie
+  if ((robot->stateCurr == STATE_OFF) || (robot->stateCurr == STATE_STATION) 
+		  || (robot->stateCurr == STATE_STATION_CHARGING))  //deactivate the save setting if the mower is not OFF to avoid zombie
   {
     serialPort->print(F("|sz~Save settings|s1~Motor|s2~Mow|s3~Bumper/Button|s4~Sonar|s5~Perimeter|s6~Lawn sensor|s7~IMU|s8~Raspberry"));
     serialPort->println(F("|s9~Battery|s10~Station|s11~Odometry|s13~Rain Temp Humid|s15~Drop sensor|s14~GPS RFID|i~Timer|s12~Date/time|sx~Factory settings|s16~ByLane Setting}"));
@@ -370,8 +371,8 @@ void RemoteControl::sendMotorMenu(boolean update) {
   }
   //bb add
   if (robot->developerActive) {
-    sendSlider("a20", F("MotorSenseLeftScale"), robot->motorSenseLeftScale, "", 0.01, 0.10, 3.00);
-    sendSlider("a21", F("MotorSenseRightScale"), robot->motorSenseRightScale, "", 0.01, 0.10, 3.00);
+    sendSlider("a20", F("MotorSenseLeftScale"), robot->motorSenseLeftScale, "", 0.01, 3.00, 0.1);
+    sendSlider("a21", F("MotorSenseRightScale"), robot->motorSenseRightScale, "", 0.01, 3.00, 0.1);
   }
   //end add
   serialPort->print(F("|a14~for config file:"));
@@ -611,10 +612,10 @@ void RemoteControl::sendPerimeterMenu(boolean update) {
   //else serialPort->print(" (outside)");
   sendSlider("e08", F("Mini Smag"), robot->perimeter.timedOutIfBelowSmag, "", 1, 200, 1);
   sendSlider("e14", F("Timeout (s) if Outside"), robot->perimeter.timeOutSecIfNotInside, "", 1, 20, 1);
-  sendSlider("e04", F("Big AREA Smag Center"), robot->perimeterTriggerMinSmag, "", 1, 600, 100);
+  sendSlider("e04", F("Big AREA Smag Center"), robot->perimeterTriggerMinSmag, "", 1, 1600, 100);
   sendSlider("e18", F("Tracking Max Speed PWM"), robot->MaxSpeedperiPwm, "", 1, 255, 80);
   sendSlider("e20", F("Circle Arc disance (cm) Obstacle while tracking"), robot->DistPeriObstacleAvoid, "", 1 , 250, 1);
-  sendSlider("e21", F("Perimeter MAG MAX VALUE"), robot->perimeterMagMaxValue, "", 1 , 2500, 500);
+  sendSlider("e21", F("Perimeter MAG MAX VALUE"), robot->perimeterMagMaxValue, "", 1 , 3500, 500);
   sendSlider("e11", F("Transition timeout"), robot->trackingPerimeterTransitionTimeOut, "", 1, 5000, 1);
   sendSlider("e12", F("Track error timeout"), robot->trackingErrorTimeOut, "", 1, 10000, 1);
   sendPIDSlider("e07", F("Track"), robot->perimeterPID, 0.1, 52);
@@ -886,9 +887,9 @@ void RemoteControl::sendBatteryMenu(boolean update) {
   sendYesNo(robot->batMonitor);
   //bb add
   if (robot->developerActive) {
-    sendSlider("j09", F("Charge Factor"), robot->batChgFactor, "", 0.01, 9, 12);
-    sendSlider("j05", F("Battery Factor "), robot->batFactor, "", 0.01, 9, 12);
-    sendSlider("j08", F("Sense factor"), robot->batSenseFactor, "", 0.01, 12);
+    sendSlider("j09", F("Charge Factor"), robot->batChgFactor, "", 0.01, 12, 9);
+    sendSlider("j05", F("Battery Factor "), robot->batFactor, "", 0.01, 12, 9);
+    sendSlider("j08", F("Sense factor"), robot->batSenseFactor, "", 0.01, 3, 0.1);
   }
   //end add
   //Console.print("batFactor=");
@@ -964,8 +965,8 @@ void RemoteControl::sendOdometryMenu(boolean update) {
   serialPort->print(robot->motorLeftRpmCurr);
   serialPort->print(", ");
   serialPort->println(robot->motorRightRpmCurr);
-  sendSlider("l04", F("Ticks per one full revolution"), robot->odometryTicksPerRevolution, "", 1, 2300, 500);
-  sendSlider("l01", F("Ticks per cm"), robot->odometryTicksPerCm, "", 0.1, 60, 10);
+  sendSlider("l04", F("Ticks per one full revolution"), robot->odometryTicksPerRevolution, "", 1, 1300, 400);
+  sendSlider("l01", F("Ticks per cm"), robot->odometryTicksPerCm, "", 0.1, 20, 1);
   sendSlider("l02", F("Wheel base cm"), robot->odometryWheelBaseCm, "", 0.1, 50, 5);
 
   serialPort->println("}");
@@ -1230,6 +1231,8 @@ void RemoteControl::sendInfoMenu(boolean update) {
   serialPort->print(robot->statsMowTimeMinutesTrip);
   serialPort->print(F("|v03~Mowing time total (hrs) "));
   serialPort->print(robot->statsMowTimeHoursTotal);
+  serialPort->print(F("|j00~Battery "));
+  serialPort->print(robot->batVoltage);
   serialPort->print(F("|v05~Battery charging cycles "));
   serialPort->print(robot->statsBatteryChargingCounterTotal);
   serialPort->print(F("|v06~Battery recharged capacity trip (mAh)"));
@@ -1238,6 +1241,10 @@ void RemoteControl::sendInfoMenu(boolean update) {
   serialPort->print(robot->statsBatteryChargingCapacityTotal / 1000);
   serialPort->print(F("|v08~Battery recharged capacity average (mAh)"));
   serialPort->print(robot->statsBatteryChargingCapacityAverage);
+  serialPort->println(F("|e02~Mag / Smag"));
+  serialPort->print(robot->perimeterMag);
+  serialPort->print(F("/"));
+  serialPort->print(robot->perimeter.getSmoothMagnitude(0));
   //serialPort->print("|d01~Perimeter v");
   //serialPort->print(verToString(readPerimeterVer()));
   //serialPort->print("|d02~IMU v");
