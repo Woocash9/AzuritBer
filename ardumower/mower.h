@@ -112,8 +112,8 @@
 #define pinRain 44                 // rain sensor
 
 // IMU (compass/gyro/accel): I2C  (SCL, SDA)
-
-
+#define MAX_PITCH 80
+#define MAX_ROLL 80
 
 
 // ------- baudrates---------------------------------
