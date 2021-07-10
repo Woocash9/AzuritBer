@@ -881,9 +881,11 @@ void Robot::printSettingSerial() {
 
 
 void Robot::saveUserSettings() {
-  Console.println(F("START TO SAVE USER SETTINGS PLEASE WAIT"));
-  loadSaveUserSettings(false);
-
+	Console.println(F("START TO SAVE USER SETTINGS PLEASE WAIT"));
+	Buzzer.tone(1400);
+	loadSaveUserSettings(false);
+	Console.println(F("USER SETTINGS SAVED!"));		
+	Buzzer.noTone();
 }
 
 
