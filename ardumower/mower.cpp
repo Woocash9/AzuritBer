@@ -62,7 +62,7 @@ Mower::Mower() {
   motorSpeedMaxRpm       = 24;   // motor wheel max RPM (WARNING: do not set too high, so there's still speed control when battery is low!)
   motorSpeedMaxPwm    = 190;  // motor wheel max Pwm  (8-bit PWM=255, 10-bit PWM=1023)
   motorPowerMax     = 23;    // motor wheel max power (Watt)
-  motorSenseRightScale = 1.870; // normal is 1.536 motor right sense scale (mA=(ADC-zero)/scale)
+  motorSenseRightScale = 1.650; // normal is 1.536 motor right sense scale (mA=(ADC-zero)/scale)
   motorSenseLeftScale = 1.650; // normal is 1.536 motor left sense scale  (mA=(ADC-zero)/scale)
   motorPowerIgnoreTime = 2000; // time to ignore motor power when start to avoid read the peack on motor start (ms)
   motorZeroSettleTime   = 2000 ; // defaut 3000 how long (ms) to wait for motors to settle at zero speed
@@ -102,7 +102,7 @@ Mower::Mower() {
   motorMowPID.Ki = 0.01;
   motorMowPID.Kd = 0.01;
   //  ------ bumper -----------------------------------
-  bumperUse         = 0;      // has bumpers?
+  bumperUse         = 1;      // has bumpers?
   //  ------ drop -----------------------------------
   dropUse          = 0;     // has drops?                                                                                              Dropsensor - Absturzsensor vorhanden ?
   dropcontact      = 0;     //contact 0-openers 1-closers                                                                              Dropsensor - Kontakt 0-Ã–ffner - 1-SchlieÃŸer betÃ¤tigt gegen GND
@@ -121,18 +121,18 @@ Mower::Mower() {
   newtagDistance2 = 0;
 
   // ------ sonar ------------------------------------
-  sonarUse                   = 0;          // use ultra sonic sensor? (WARNING: robot will slow down, if enabled but not connected!)
+  sonarUse                   = 1;          // use ultra sonic sensor? (WARNING: robot will slow down, if enabled but not connected!)
   sonarLeftUse               = 1;
   sonarRightUse              = 1;
-  sonarCenterUse             = 0;
-  sonarTriggerBelow          = 87;       // ultrasonic sensor trigger distance in cm (0=off)
-  sonarToFrontDist           = 30;        // ultrasonic sensor distance to front mower in cm
+  sonarCenterUse             = 1;
+  sonarTriggerBelow          = 35;       // ultrasonic sensor trigger distance in cm (0=off)
+  sonarToFrontDist           = 12;        // ultrasonic sensor distance to front mower in cm
 
 
 
   // ------ perimeter ---------------------------------
-  perimeterUse       = 0;      // use perimeter?
-  perimeterTriggerMinSmag = 200;      // perimeter minimum smag to use on big area
+  perimeterUse       = 1;      // use perimeter?
+  perimeterTriggerMinSmag = 1550;      // perimeter minimum smag to use on big area
   //perimeterOutRollTimeMax  = 2000;   // free
   //perimeterOutRollTimeMin = 750;    // free
   perimeterOutRevTime   = 2200;   // free
@@ -156,7 +156,7 @@ Mower::Mower() {
   RollTimeFor45Deg = 1000; //time while roll in peri obstacle avoid if no Odometry
   circleTimeForObstacle = 4000; //time while arc circle in peri obstacle avoid if no Odometry
   DistPeriObstacleAvoid = 100; //distance while arc circle in peri obstacle avoid
-  perimeterMagMaxValue = 2000; // Maximum value return when near the perimeter wire (use for tracking and slowing when near wire
+  perimeterMagMaxValue = 2380; // Maximum value return when near the perimeter wire (use for tracking and slowing when near wire
   perimeter.read2Coil = false;
   areaToGo = 1;//initialise the areatogo to the station area
 
@@ -198,19 +198,19 @@ Mower::Mower() {
   // ------ model R/C ------------------------------------
   remoteUse         = 0;       // use model remote control (R/C)?
   // ------ battery -------------------------------------
-  batMonitor = false;              // monitor battery and charge voltage?
+  batMonitor = true;              // monitor battery and charge voltage?
   batGoHomeIfBelow = 24.3;     // drive home voltage (Volt)
   batSwitchOffIfBelow = 23;  // switch off battery if below voltage (Volt)
-  batSwitchOffIfIdle = 300;      // switch off battery if idle (minutes)
-  batFactor       = 10.88;     //depend of the resistor divisor on board R12 and R13
-  batChgFactor    = 10.89;     //depend of the resistor divisor on board R9 and R10
+  batSwitchOffIfIdle = 15;      // switch off battery if idle (minutes)
+  batFactor       = 11.15;     //depend of the resistor divisor on board R12 and R13
+  batChgFactor    = 11.27;     //depend of the resistor divisor on board R9 and R10
   batFull          = 29.4;     // battery reference Voltage (fully charged) PLEASE ADJUST IF USING A DIFFERENT BATTERY VOLTAGE! FOR a 12V SYSTEM TO 14.4V
-  batChargingCurrentMax = 2; // maximum current your charger can devliver
+  batChargingCurrentMax = 4; // maximum current your charger can devliver
   batFullCurrent  = 0.1;      // current flowing when battery is fully charged
-  startChargingIfBelow = 25.0; // start charging if battery Voltage is below
+  startChargingIfBelow = 27.0; // start charging if battery Voltage is below
   chargingTimeout = 18000000; // safety timer for charging (ms)  5 hrs
   chgSenseZero    = 511;        // charge current sense zero point
-  batSenseFactor  = 1.11;         // charge current conversion factor   - Empfindlichkeit nimmt mit ca. 39/V Vcc ab
+  batSenseFactor  = 0.72;         // charge current conversion factor   - Empfindlichkeit nimmt mit ca. 39/V Vcc ab
   chgSense        = 185.0;      // mV/A empfindlichkeit des Ladestromsensors in mV/A (FÃ¼r ACS712 5A = 185)
   chgChange       = 0;          // Messwertumkehr von - nach +         1 oder 0
   chgNull         = 2;          // Nullduchgang abziehen (1 oder 2)
@@ -226,9 +226,9 @@ Mower::Mower() {
 
   // ------ odometry ------------------------------------
   odometryUse       = 1;       // use odometry?
-  odometryTicksPerRevolution = 1010;   // encoder ticks per one full resolution
-  odometryTicksPerCm = 12.9;  // encoder ticks per cm
-  odometryWheelBaseCm = 43;    // wheel-to-wheel distance (cm)
+  odometryTicksPerRevolution = 691;   // encoder ticks per one full resolution
+  odometryTicksPerCm = 9.70;
+  odometryWheelBaseCm = 41;    // wheel-to-wheel distance (cm)
   
 
 
