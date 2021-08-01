@@ -4025,12 +4025,12 @@ void Robot::checkCurrent() {
   {
     errorCounterMax[ERR_MOW_SENSE] = 0;
     motorMowSenseCounter = 0;
-    if ((lastTimeMotorMowStuck != 0) && (millis() >= lastTimeMotorMowStuck + 60000)) { // wait 60 seconds before switching on again
+    if ((lastTimeMotorMowStuck != 0) && (millis() >= lastTimeMotorMowStuck + MOTOR_MOW_STUCK_PAUSE)) { // wait X seconds before switching on again
       errorCounter[ERR_MOW_SENSE] = 0;
       if ((stateCurr == STATE_FORWARD_ODO)) { //avoid risq of restart not allowed
         motorMowEnable = true;
         lastTimeMotorMowStuck = 0;
-        Console.println("Time to restart the mow motor after the 60 secondes pause");
+        Console.println("Time to restart the mow motor after pause");
       }
     }
   }
