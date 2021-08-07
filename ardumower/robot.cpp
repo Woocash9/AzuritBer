@@ -85,7 +85,6 @@ unsigned long EndReadAt;
 unsigned long ReadDuration;
 
 
-
 Robot::Robot() {
   name = "Generic";
   developerActive = false;
@@ -248,6 +247,7 @@ Robot::Robot() {
   motorRightPID.Kd = motorLeftPID.Kd;
   gpsReady = false;
   MyrpiStatusSync = false;
+  /* randomSeed(analogRead(pinPerimeterLeft)); */
 }
 
 
@@ -1016,17 +1016,21 @@ void Robot::setRemotePPMState(unsigned long timeMicros, boolean remoteSpeedState
 // - ensures that the motor is not switched to 100% too fast (motorMowAccel)
 // - ensures that the motor voltage is not higher than motorMowSpeedMaxPwm
 void Robot::setMotorMowPWM(int pwm, boolean useAccel) {
-  unsigned long TaC = millis() - lastSetMotorMowSpeedTime;    // sampling time in millis
-  lastSetMotorMowSpeedTime = millis();
-  if (TaC > 1000) TaC = 1;
-  //bber13
-  if ( (!useAccel)) {  //accel is not use when stop the blade on tilt
-    motorMowPWMCurr = pwm;
-  }
-  else {
-    motorMowPWMCurr += int(TaC) * (pwm - motorMowPWMCurr) / motorMowAccel;
-  }
-  setActuator(ACT_MOTOR_MOW, min(motorMowSpeedMaxPwm, max(0, motorMowPWMCurr)));
+	unsigned long TaC = millis() - lastSetMotorMowSpeedTime;    // sampling time in millis
+	lastSetMotorMowSpeedTime = millis();
+	if (TaC > 1000) TaC = 1;
+	int8_t dir = sgn(motorMowPWMCurr);//woocash - store current direction
+	dir = dir==0 ? 1-2*random(2) : dir; //woocash - if motor is stopped randomply pick dir (1 or -1)
+	motorMowPWMCurr = abs(motorMowPWMCurr); //woocash - drop sign for calculations
+	//bber13
+	if ( (!useAccel)) {  //accel is not use when stop the blade on tilt
+		motorMowPWMCurr = pwm;
+	}
+	else {
+		motorMowPWMCurr += int(TaC) * (pwm - motorMowPWMCurr) / motorMowAccel;
+	}
+	setActuator(ACT_MOTOR_MOW, min(motorMowSpeedMaxPwm, max(0, motorMowPWMCurr))*dir);
+	motorMowPWMCurr *= dir; //woocash - apply mowing direction
 }
 
 
@@ -5826,7 +5830,7 @@ void Robot::loop()  {
     case STATE_PERI_OUT_ROLL_TOINSIDE:
       motorControlOdo();
       //bber17
-      if (RollToInsideQty >= 10) {
+      if (RollToInsideQty >= ROLL_TO_INSIDE_MAX_TRIES) {
         Console.println("ERROR Mower is lost out the wire and can't find the signal. Roll to inside occur more than 10 Time");
         setNextState(STATE_ERROR, rollDir);
         return;

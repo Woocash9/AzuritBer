@@ -208,6 +208,12 @@ enum { MOW_RANDOM, MOW_LANES,MOW_WIRE, MOW_ZIGZAG };
 enum { CONSOLE_SENSOR_COUNTERS, CONSOLE_SENSOR_VALUES, CONSOLE_PERIMETER, CONSOLE_OFF , CONSOLE_TRACKING };
 
 
+static inline int8_t sgn(int val) {
+	if (val < 0) return -1;
+	if (val==0) return 0;
+	return 1;
+}
+
 
 #define MAX_TIMERS 5
 

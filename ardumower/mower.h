@@ -115,6 +115,7 @@
 #define MAX_PITCH 80
 #define MAX_ROLL 80
 #define MOTOR_MOW_STUCK_PAUSE 20000
+#define ROLL_TO_INSIDE_MAX_TRIES 20
 
 // ------- baudrates---------------------------------
 
