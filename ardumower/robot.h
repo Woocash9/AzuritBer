@@ -294,6 +294,8 @@ class Robot
     int lastStartOdometryRight;
     int lastStartOdometryLeft;  // use to calculate the accel
     int stateStartOdometryRight;
+    int periStartOdometryRight;
+    int periStartOdometryLeft;  // woocash - use to calculate distance traveled after peri out to make sure there is enough space for rev.
     float straightLineTheta; //angle read by odometry during the last lane to verify the IMU drift
     int DistPeriOutRev; // Distance in CM when reach perimeter
     int DistPeriObstacleRev; // Distance in CM when prei rev obstacle
@@ -876,7 +878,9 @@ class Robot
     virtual void purgeConsole();
     virtual char waitCharConsole();
     virtual String waitStringConsole();
-    
+
+	virtual void periOutStartTrackingDist();
+	virtual bool periOutHasSpaceForRev();
 
 };
 

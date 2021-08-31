@@ -100,6 +100,7 @@ Robot::Robot() {
   //mowPatternCurr = MOW_RANDOM;
 
   odometryLeft = odometryRight = 0;
+  periStartOdometryLeft = periStartOdometryRight = 0;
   odometryLeftLastState = odometryLeftLastState2 = odometryRightLastState = odometryRightLastState2 = LOW;
   odometryTheta = odometryX = odometryY = 0;
   prevYawCalcOdo = 0;
@@ -1158,6 +1159,15 @@ void Robot::setMotorPWM(int pwmLeft, int pwmRight, boolean useAccel) {
     setActuator(ACT_MOTOR_RIGHT, motorRightPWMCurr);
 }
 
+
+void Robot::periOutStartTrackingDist(){
+	periStartOdometryRight = odometryRight;
+	periStartOdometryLeft = odometryLeft;
+}
+
+bool Robot::periOutHasSpaceForRev(){
+	return (abs(odometryLeft-periStartOdometryLeft)>odometryTicksPerCm*DistPeriOutRev) && (abs(odometryRight-periStartOdometryRight)>odometryTicksPerCm*DistPeriOutRev);
+}
 
 
 
@@ -2411,9 +2421,9 @@ void Robot::checkButton() {
         motorMowEnable = false;
         setNextState(STATE_OFF, 0);
       } else if (buttonCounter == 1) {
-        // start normal with mowing in lanes
+        // start normal with mowing random
         motorMowEnable = true;
-        mowPatternCurr = MOW_LANES;
+        mowPatternCurr = MOW_RANDOM;
         setNextState(STATE_ACCEL_FRWRD, 0);
       } else if (buttonCounter == 2) {
         //go to station
@@ -2421,9 +2431,9 @@ void Robot::checkButton() {
         setNextState(STATE_PERI_FIND, 0);
       }
       else
-      { // start normal with mowing random
+      { // start normal with mowing in lanes
         motorMowEnable = true;
-        mowPatternCurr = MOW_RANDOM;
+        mowPatternCurr = MOW_LANES;
         setNextState(STATE_ACCEL_FRWRD, 0);
 
       }
@@ -3489,7 +3499,7 @@ void Robot::setNextState(byte stateNew, byte dir) {
       stateEndOdometryRight = odometryRight + (int)(odometryTicksPerCm * DistPeriOutForw) - PrevStateOdoDepassRight;
       stateEndOdometryLeft = odometryLeft + (int)(odometryTicksPerCm * DistPeriOutForw) - PrevStateOdoDepassLeft;
       OdoRampCompute();
-
+		periOutStartTrackingDist();
       break;
 
 
@@ -5457,13 +5467,21 @@ void Robot::loop()  {
       motorControlOdo();
       if (((odometryRight >= stateEndOdometryRight) && (odometryLeft >= stateEndOdometryLeft)))
         if (motorLeftPWMCurr == 0 && motorRightPWMCurr == 0)  { //wait until the 2 motors completly stop because rotation is inverted
-          setNextState(STATE_PERI_OUT_REV, rollDir);
+          if (periOutHasSpaceForRev()){
+			setNextState(STATE_PERI_OUT_REV, rollDir);
+		  }else{
+			setNextState(STATE_PERI_OUT_ROLL_TOINSIDE, rollDir);
+		  }
         }
       if (millis() > (stateStartTime + MaxOdoStateDuration)) {
         if (developerActive) {
           Console.println ("Warning can t peri out stop in time ");
         }
-        setNextState(STATE_PERI_OUT_REV, rollDir);//if the motor can't rech the odocible in slope
+          if (periOutHasSpaceForRev()){
+			setNextState(STATE_PERI_OUT_REV, rollDir);//if the motor can't rech the odocible in slope
+		  }else{
+			setNextState(STATE_PERI_OUT_ROLL_TOINSIDE, rollDir);
+		  }
       }
       break;
 
