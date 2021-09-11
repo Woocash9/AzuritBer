@@ -1268,6 +1268,7 @@ void RemoteControl::sendCommandMenu(boolean update) {
 
   serialPort->print(F("|ro~OFF"));
   serialPort->print(F("|ra~Start Now in Auto mode"));
+  serialPort->print(F("|rc~Start spot mowing"));
   serialPort->println(F("|rb~Actual Status is "));
   serialPort->print(robot->statusName());
   serialPort->println(F("|rs~Actual State is "));
@@ -1344,6 +1345,10 @@ void RemoteControl::processCommandMenu(String pfodCmd) {
     robot->statusCurr = TRACK_TO_START;
     robot->setNextState(STATE_PERI_FIND, 0);
     sendCommandMenu(true);
+  } else if (pfodCmd == "rc") {
+    robot->mowPatternDuration = 0;
+    robot->motorMowEnable = true;
+    robot->setNextState(STATE_STOP_BEFORE_SPIRALE, robot->rollDir);
   } else if (pfodCmd == "ra") {
     robot->mowPatternDuration = 0;
     robot->motorMowEnable = true;
