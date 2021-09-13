@@ -1165,8 +1165,17 @@ void Robot::periOutStartTrackingDist(){
 	periStartOdometryLeft = odometryLeft;
 }
 
-bool Robot::periOutHasSpaceForRev(){
-	return (abs(odometryLeft-periStartOdometryLeft)>odometryTicksPerCm*DistPeriOutRev) && (abs(odometryRight-periStartOdometryRight)>odometryTicksPerCm*DistPeriOutRev);
+int Robot::periOutSpaceForRev(){ //woocash - calculate max rev distance
+	int d = (abs(odometryLeft-periStartOdometryLeft) + abs(odometryRight-periStartOdometryRight))/2/odometryTicksPerCm; //calculate travellled distance
+	Console.print("Peri distance: ");
+	Console.print(d);
+	Console.print(", return value:");
+	Console.print(min(d,DistPeriOutRev));
+	if (d<3){
+		return 0; //do not reverse if traveled less then 3 cm
+	}else{
+		return min(d,DistPeriOutRev);
+	}
 }
 
 
@@ -2599,7 +2608,7 @@ void Robot::readSensors() {
     }
   }
   if (millis() >= nextTimeRTC) {
-    // if ((timerUse) && (millis() >= nextTimeRTC)) {
+  /* if ((timerUse) && (millis() >= nextTimeRTC)) { */
     nextTimeRTC = millis() + 20000;
     readSensor(SEN_RTC);       // read RTC
     //Console.print(F("RTC date received: "));
@@ -3354,8 +3363,11 @@ void Robot::setNextState(byte stateNew, byte dir) {
         UseBrakeRight = 1;
       }
       motorLeftSpeedRpmSet = motorRightSpeedRpmSet = -motorSpeedMaxRpm;
-      stateEndOdometryRight = odometryRight - (odometryTicksPerCm * DistPeriOutRev) - PrevStateOdoDepassRight;
-      stateEndOdometryLeft = odometryLeft - (odometryTicksPerCm * DistPeriOutRev) - PrevStateOdoDepassLeft;
+	  {
+		  int d = periOutSpaceForRev();
+		  stateEndOdometryRight = odometryRight - (odometryTicksPerCm * d) - PrevStateOdoDepassRight;
+		  stateEndOdometryLeft = odometryLeft - (odometryTicksPerCm * d) - PrevStateOdoDepassLeft;
+	  }
       OdoRampCompute();
       break;
 
@@ -5467,7 +5479,7 @@ void Robot::loop()  {
       motorControlOdo();
       if (((odometryRight >= stateEndOdometryRight) && (odometryLeft >= stateEndOdometryLeft)))
         if (motorLeftPWMCurr == 0 && motorRightPWMCurr == 0)  { //wait until the 2 motors completly stop because rotation is inverted
-          if (periOutHasSpaceForRev()){
+          if (periOutSpaceForRev()>0){
 			setNextState(STATE_PERI_OUT_REV, rollDir);
 		  }else{
 			setNextState(STATE_PERI_OUT_ROLL_TOINSIDE, rollDir);
@@ -5477,7 +5489,7 @@ void Robot::loop()  {
         if (developerActive) {
           Console.println ("Warning can t peri out stop in time ");
         }
-          if (periOutHasSpaceForRev()){
+          if (periOutSpaceForRev()>0){
 			setNextState(STATE_PERI_OUT_REV, rollDir);//if the motor can't rech the odocible in slope
 		  }else{
 			setNextState(STATE_PERI_OUT_ROLL_TOINSIDE, rollDir);

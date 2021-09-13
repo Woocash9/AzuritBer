@@ -880,7 +880,7 @@ class Robot
     virtual String waitStringConsole();
 
 	virtual void periOutStartTrackingDist();
-	virtual bool periOutHasSpaceForRev();
+	virtual int periOutSpaceForRev();
 
 };
 
