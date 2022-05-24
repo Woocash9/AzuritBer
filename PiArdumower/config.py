@@ -20,14 +20,17 @@ if (os.name=='posix'):
     #the battery cycle can be recorded on each charging cycle see plot folder
     AutoRecordBatCharging=True
     #Possible to remove the in and out NMEA message visualisation in console
-    useDebugConsole=False
+    useDebugConsole=True
     
     #On multiple area it's the sender IP, Use to start and stop them over HTTP
     #Sender1AdressIP is the station sender 
     
-    Sender1AdressIP="10.0.0.150"
-    Sender2AdressIP="10.0.0.151"
-    Sender3AdressIP="10.0.0.154"
+    #Sender1AdressIP="10.0.0.150"
+    #Sender2AdressIP="10.0.0.151"
+    #Sender3AdressIP="10.0.0.154"
+    Sender1AdressIP="0.0.0.0"
+    Sender2AdressIP="0.0.0.0"
+    Sender3AdressIP="0.0.0.0"
     
     #if camera is rotate in the chassis
     myCamAngle = 0 # Possible value = 0, 90, 180, 270
@@ -45,7 +48,9 @@ if (os.name=='posix'):
     # Always first letter uppercase and set the yaml file according Mower is the defaut name
     Mqtt_MowerName = "Denna"
 
-
+ #Setting for Vision
+    useVision=True
+    visionDetectMinScore = 78
 
 
 
