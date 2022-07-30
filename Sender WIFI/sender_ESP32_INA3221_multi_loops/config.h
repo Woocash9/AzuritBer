@@ -21,7 +21,7 @@
 
 */
 #include "src/INA3221/SDL_Arduino_INA3221.h"
-#include "src/SSD1306/ACROBOTIC_SSD1306.h"
+/* #include "src/SSD1306/ACROBOTIC_SSD1306.h" */
 #include <casa.h>
 
 //********************* setting for current sensor **********************************
@@ -38,9 +38,14 @@ IPAddress dns(10, 0, 0, 1); // put here one dns (IP of your routeur)
 #define USE_RAINFLOW    0     // check the amount of rain not finish to dev on 31/08/2020
 #define WORKING_TIMEOUT_MINS 500  // timeout for perimeter switch-off if robot not in station (minutes)
 #define PERI_CURRENT_MIN    100    // minimum milliAmpere for cutting wire detection
+#define CHARG_CURRENT_MIN    100    // minimum milliAmpere for mower in station detection
 
 #define I2C_SDA 21
 #define I2C_SCL 22
+#define I2C_OLED_Address 0x3c //initialize with the I2C addr 0x3C Typically eBay OLED's
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define OLED_RESET -1   //   QT-PY / XIAO
 
 #define pinPushButton      33  //           (connect to Button) //R1 2.2K R2 3.3K
 #define pinRainFlow       35  //           (connect to Rain box) //R3 2.2K R4 3.3K

@@ -3,6 +3,8 @@
 /* #include "src/MemoryFree/MemoryFree.h" */
 #include "config.h"
 #include "OTA.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_SH110X.h>
 
 
 hw_timer_t * timer = NULL;
@@ -66,6 +68,7 @@ uint8_t sigCodeSize = SIZEOF(sigCode);
 
 WiFiServer server(80);
 SDL_Arduino_INA3221 ina3221;
+Adafruit_SH1106G display = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void IRAM_ATTR onTimer() { // management of the signal
 	portENTER_CRITICAL_ISR(&timerMux);
@@ -79,6 +82,62 @@ void IRAM_ATTR onTimer() { // management of the signal
 	step ++;
 	portEXIT_CRITICAL_ISR(&timerMux);
 }
+
+void oledClear(){
+	display.clearDisplay();
+	display.setCursor(0,0);
+}
+
+void oledInit(){
+	display.begin(I2C_OLED_Address, true); // Address 0x3C default
+	display.display();
+	delay(1000);
+	oledClear();
+	display.setTextSize(1);
+	display.setTextColor(SH110X_WHITE);
+	delay(10);
+}
+
+void oledDisplay(){
+	display.display();
+}
+
+void oledPrint(const char *string){
+	display.print(string);
+}
+
+void oledPrint(const char *string, int y){
+	display.setCursor(0,y*8);
+    display.fillRect(0, y*8, display.width(), 8, SH110X_BLACK);
+	oledPrint(string);
+}
+
+void oledPrint(const char *string, int y, int x){
+	display.setCursor(x*8,y*8);
+	oledPrint(string);
+}
+
+void oledPrintln(const char *string){
+	display.println(string);
+}
+
+void oledPrintln(const char *string, int y){
+	oledPrint(string, y);
+	display.println();
+}
+
+void oledPrintln(const char *string, int x, int y){
+	oledPrint(string, y, x);
+	display.println();
+}
+
+void oledPrintln(const float val){
+	char buff[10];
+	sprintf(buff, "%.0f", val);
+	display.println(buff);
+}
+
+
 
 void setup(){
 	Wire.begin(I2C_SDA, I2C_SCL);
@@ -114,19 +173,14 @@ void setup(){
 	WiFi.mode(WIFI_STA);
 	WiFi.disconnect();
 	delay(100);
+
 	//------------------------  SCREEN parts  ----------------------------------------
-	oled.init();    // Initialze SSD1306 OLED display
-	delay(500);
-	oled.clearDisplay();              // Clear screen
-	delay(500);
-	oled.setTextXY(0, 0);             // Set cursor position, start of line 0
-	oled.putLine("ARDUMOWER");
-	oled.setTextXY(1, 0);             // Set cursor position, start of line 1
-	oled.putLine("LK SENDER");
-	oled.setTextXY(2, 0);             // Set cursor position, start of line 2
-	oled.putLine(VER);
-	oled.setTextXY(3, 0);           // Set cursor position, line 2 10th character
-	oled.putLine("MULTI LOOPS");
+	oledInit();
+	oledPrintln("ARDUMOWER");
+	oledPrintln("LK SENDER");
+	oledPrintln(VER);
+	oledPrintln("MULTI LOOPS");
+	oledDisplay();
 
 	//------------------------  current sensor parts  ----------------------------------------
 	Serial.println("Measuring voltage and current using ina3221 ...");
@@ -140,7 +194,7 @@ void setup(){
 
 
 void connection() {
-	oled.clearDisplay();
+	oledClear();
 	Serial.println();
 	Serial.print("Connecting to ");
 	Serial.println(ssid);
@@ -150,8 +204,8 @@ void connection() {
 	{
 		if ( WiFi.status() != WL_CONNECTED )
 		{
-			oled.setTextXY(0, 0);
-			oled.putLine("Try connecting");
+			oledPrintln("Try connecting");
+			oledDisplay();
 			delay (250);
 		}
 	}
@@ -164,11 +218,10 @@ void connection() {
 		Serial.println("WiFi connected.");
 		Serial.println("IP address: ");
 		Serial.println(bufIP);
-		oled.clearDisplay();
-		oled.setTextXY(0, 0);
-		oled.putLine("WIFI Connected");
-		oled.setTextXY(1, 0);
-		oled.putLine(bufIP);
+		oledClear();
+		oledPrintln("WIFI Connected");
+		oledPrintln(bufIP);
+		oledDisplay();
 		server.begin();
 		setupOTA("ardu_sender");
 	}
@@ -176,17 +229,12 @@ void connection() {
 
 
 static void ScanNetwork(){
-	oled.clearDisplay();
 	WiFi.mode(WIFI_STA);
 	WiFi.disconnect();
-	oled.setTextXY(0, 0);
-	oled.putLine("Hotspot Lost");
-	oled.setTextXY(3, 0);
-	oled.putLine(activeLoop ? "Sender ON" : "Sender OFF");
-	oled.setTextXY(4, 0);
-	oled.putLine("worktime=");
-	oled.setTextXY(4, 9);
-	oled.putFloat(workTimeMins, 0);
+	oledClear();
+	oledPrintln("Hotspot Lost");
+	oledPrintln(activeLoop ? "Sender ON" : "Sender OFF");
+	oledPrint("worktime="); oledPrintln(workTimeMins);
 
 	if (USE_PERI_CURRENT) {
 		busvoltage1 = ina3221.getBusVoltage_V(PERI_CURRENT_CHANNEL);
@@ -194,64 +242,58 @@ static void ScanNetwork(){
 		PeriCurrent = PeriCurrent - 100.0; //the DC/DC,ESP32,LN298N can drain up to 300 ma when scanning network
 		if (PeriCurrent <= 5) PeriCurrent = 0; //
 		PeriCurrent = PeriCurrent * busvoltage1 / DcDcOutVoltage; // it's 3.2666 = 29.4/9.0 the power is read before the DC/DC converter so the current change according : 29.4V is the Power supply 9.0V is the DC/DC output voltage (Change according your setting)
-		oled.setTextXY(5, 0);
-		oled.putLine("Pericurr");
-		oled.setTextXY(5, 9);
-		oled.putFloat(PeriCurrent, 0);
+		oledPrint("Pericurr",5); oledPrintln(PeriCurrent);
 	}
 
 
 	if (USE_STATION) {
 		ChargeCurrent = ina3221.getCurrent_mA(MOWER_STATION_CHANNEL);
 		if(ChargeCurrent <= 5) ChargeCurrent = 0;
-		oled.setTextXY(6, 0);
-		oled.putLine("Charcurr");
-		oled.setTextXY(6, 9);
-		oled.putFloat(ChargeCurrent, 0);
+		oledPrint("Charcurr",6); oledPrintln(ChargeCurrent);
 	}
+	oledDisplay();
 	delay(5000);  // wait until all is disconnect
 	int n = WiFi.scanNetworks();
 	switch(n){
 		case -1:
-			oled.setTextXY(0, 0);
-			oled.putLine("Scan running ???");
-			oled.setTextXY(1, 0);
-			oled.putLine("Need Reset ???");
-			oled.setTextXY(2, 0);
-			oled.putLine("If sender is OFF");
+			oledClear();
+			oledPrintln("Scan running ???");
+			oledPrintln("Need Reset ???");
+			oledPrintln("If sender is OFF");
+			oledDisplay();
 			delay(5000);
 			if (activeLoop==NULL) ESP.restart(); // do not reset if sender is ON
 			break;
 		case -2:
 			//bug in esp32 if wifi is lost many time the esp32 fail to autoreconnect,maybe solve in other firmware ???????
-			oled.setTextXY(0, 0);
-			oled.putLine("Scan Fail.");
-			oled.setTextXY(1, 0);
-			oled.putLine("Need Reset ???");
-			oled.setTextXY(2, 0);
-			oled.putLine("If sender is Off");
+			oledClear();
+			oledPrintln("Scan Fail.");
+			oledPrintln("Need Reset ???");
+			oledPrintln("If sender is Off");
+			oledDisplay();
 			delay(5000);
 			if (activeLoop==NULL) ESP.restart(); // do not reset if sender is ON
 			break;
 		case 0:
-			oled.setTextXY(0, 0);
-			oled.putLine("No networks.");
+			oledClear();
+			oledPrintln("No networks.");
+			oledDisplay();
 			break;
 		default:
 			if (n > 0){
 				Serial.print("find ");
 				Serial.println(n);
-				oled.setTextXY(0, 0);
-				oled.putLine("Find");
+				oledClear();
+				oledPrint("Find ");
 				for (int i = 0; i < n; ++i) {
 					// Print SSID for each network found
 					char currentSSID[64];
 					WiFi.SSID(i).toCharArray(currentSSID, 64);
 					Serial.print("find Wifi: ");
 					Serial.println(currentSSID);
-					oled.setTextXY(0, 5);
-					oled.putString(currentSSID);
-					delay (1500);
+					oledPrintln(currentSSID, 0, 5);
+					oledDisplay();
+					delay(1500);
 					if (strcmp(ssid, currentSSID) == 0) {
 						connection();
 						i = n+1; //to avoid loop again when connected
@@ -277,6 +319,7 @@ void stopSender(){
 bool startLoop(LOOP *loop){
 	loop = loop ? loop : &loops[0]; //if no loop requested default to first one
 	stopSender();
+	workTimeMins = 0;
 	digitalWrite(loop->pEnable, HIGH);
 	activeLoop = loop;
 	Serial.print("Started loop: ");
@@ -315,10 +358,7 @@ void loop(){
 	if (millis() >= nextTimeControl) {
 		nextTimeControl = millis() + 2000;  //after debug can set this to 10 secondes
 		StartButtonProcess = false;
-		oled.setTextXY(4, 0);
-		oled.putLine("worktime ");
-		oled.setTextXY(4, 9);
-		oled.putFloat(workTimeMins, 0);
+		oledPrint("worktime ", 4); oledPrintln(workTimeMins);
 		if (USE_PERI_CURRENT) {
 			busvoltage1 = ina3221.getBusVoltage_V(PERI_CURRENT_CHANNEL);
 			PeriCurrent = ina3221.getCurrent_mA(PERI_CURRENT_CHANNEL);
@@ -326,13 +366,9 @@ void loop(){
 			if (PeriCurrent <= 5) PeriCurrent = 0; //
 			PeriCurrent = PeriCurrent * busvoltage1 / DcDcOutVoltage; // it's 3.2666 = 29.4/9.0 the power is read before the DC/DC converter so the current change according : 29.4V is the Power supply 9.0V is the DC/DC output voltage (Change according your setting)
 			if ((activeLoop) && (PeriCurrent < PERI_CURRENT_MIN)) {
-				oled.setTextXY(5, 0);
-				oled.putLine("  Wire is Cut  ");
+				oledPrintln("  !!! Wire is Cut !!!", 5);
 			}else{
-				oled.setTextXY(5, 0);
-				oled.putLine("Pericurr");
-				oled.setTextXY(5, 9);
-				oled.putFloat(PeriCurrent, 0);
+				oledPrint("Pericurr ", 5); oledPrintln(PeriCurrent);
 			}
 		}
 
@@ -347,32 +383,14 @@ void loop(){
 	if (millis() >= nextTimeSec) {
 		nextTimeSec = millis() + 1000;
 
-		/* oled.setTextXY(7, 0); */
-		/* oled.putLine("Heap "); */
-		/* oled.setTextXY(7, 6); */
-		/* oled.putNumber(ESP.getFreeHeap()); */
-
-		// woocash
-		/* if(activeLoop){ */
-		/* 	oled.setTextXY(7, 0); */
-		/* 	oled.putLine("Loop "); */
-		/* 	oled.setTextXY(7, 5); */
-		/* 	oled.putString(activeLoop->code); */
-		/* } */
-
-
 		if (USE_STATION) {
 			busvoltage2 = ina3221.getBusVoltage_V(MOWER_STATION_CHANNEL);
 			shuntvoltage2 = ina3221.getShuntVoltage_mV(MOWER_STATION_CHANNEL);
 			ChargeCurrent = ina3221.getCurrent_mA(MOWER_STATION_CHANNEL);
 			if (ChargeCurrent <= 5) ChargeCurrent = 0;
 			loadvoltage2 = busvoltage2 + (shuntvoltage2 / 1000);
-			oled.setTextXY(6, 0);
-			oled.putLine("Charcurr");
-			oled.setTextXY(6, 9);
-			oled.putFloat(ChargeCurrent, 0);
-
-			if (ChargeCurrent > 200) { //mower is into the station ,in my test 410 ma are drained so possible to stop sender
+			oledPrint("Charcurr ", 6); oledPrintln(ChargeCurrent);
+			if (ChargeCurrent > CHARG_CURRENT_MIN){
 				stopSender();
 			}else if(activeLoop==NULL){//start loop only if not yet active
 				startLoop(activeLoop); //do not pass any specific loop - let startLoop function decide which to use
@@ -385,13 +403,9 @@ void loop(){
 		}
 
 		if (activeLoop) {
-			oled.setTextXY(2, 0);
-			oled.putLine("Sender ON");
-			oled.setTextXY(2, 10);
-			oled.putString(activeLoop->code);
+			oledPrint("Sender ON    ", 2); oledPrintln(activeLoop->code);
 		}else{
-			oled.setTextXY(2, 0);
-			oled.putLine("Sender OFF");
+			oledPrintln("Sender OFF", 2);
 		}
 	}
 
@@ -481,8 +495,9 @@ void loop(){
 	if ((USE_BUTTON) && (millis() > nextTimeCheckButton)) {
 		nextTimeCheckButton = millis() + 100;
 		if (StartButtonProcess) {
-			oled.setTextXY(7, 0);
-			oled.putLine("Button pressed");
+			oledPrintln("Button pressed",7);
+		}else{
+			oledPrintln("", 7);
 		}
 
 		Button_pressed = digitalRead(pinPushButton);
@@ -503,4 +518,5 @@ void loop(){
 			nextTimeControl = millis() + 3000;
 		}
 	}
+	oledDisplay();
 }
